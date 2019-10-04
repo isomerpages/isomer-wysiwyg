@@ -4,38 +4,10 @@ import './App.css';
 import SimpleMDE from 'simplemde';
 import 'simplemde/dist/simplemde.min.css'
 import file from './test-files/pages/privacy.md'
+import utils from './utils'
+// import htmlFile from './test-files/layouts/simple-page.html'
 
 class App extends React.Component {
-  yamlParser (markdownFile) {
-    // format file to extract yaml front matter
-    const contents = markdownFile.split('---')
-    const articleConfig = contents[1]
-    const articleContent = contents[2]
-
-    // parse yaml and retrieve the attributes like layout etc.
-    const resultsArr = articleConfig.split('\n').map(curr => {
-      if (curr !== '') {
-        return {
-          [curr.split(': ')[0]]: curr.split(': ')[1]
-        }
-      } else {
-        return null
-      }
-    }).filter(function (el) {
-      return el != null;
-    })
-
-    // get the configs all in one object
-    var configObj = {}
-    for (var i = 0; i < resultsArr.length; i++) {
-      configObj = Object.assign(configObj, resultsArr[i])
-    }
-
-    return {
-      configObj,
-      content: articleContent
-    }
-  }
   
   async componentDidMount() {
     // load editor
@@ -47,10 +19,12 @@ class App extends React.Component {
     const markdown = await result.text()
   
     // parse the content
-    const markdownOutput = this.yamlParser(markdown)
+    const markdownOutput = utils.frontMatterParser(markdown)
 
     // test
     console.log(markdownOutput.configObj)
+    console.log(file)
+    // console.log(htmlFile)
 
     // load the editor with the original text
     editor.value(markdownOutput.content)
