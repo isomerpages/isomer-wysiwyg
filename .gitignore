@@ -7,6 +7,9 @@
 
 # testing
 /coverage
+_testing
+liquidjsTest.js
+test.js
 
 # production
 /build
