@@ -1,5 +1,6 @@
 const yaml = require('js-yaml')
 const fs = require('fs')
+const path = require('path')
 
 function yamlParser (file) {
   const inputfile = 'test-files/_configs/_config.yml'
@@ -46,12 +47,21 @@ const secondLayerLayouts = ['test-me-too']
 const thirdLayerLayouts = ['test-me-three']
 
 // define the layout dependency map
+// the real layout map will be more complicated and 
+// contain a map between all the templates
 const layoutMap = {
-  'test-me-too': 'test',
-  'test-me-three': 'test-me-too',
+  // 'test-me-too': 'test',
+  // 'test-me-three': 'test-me-too',
+  'leftnav-page-content-test': 'leftnav-page-test',
+  'leftnav-page-test': 'default-test'
 }
 
-
+// function which returns an object that identifies the
+// layout dependencies within each other
+// an example object returned is:
+// { 'layout-2': 'test-me-three.html',
+//  'layout-1': 'test-me-too.html',
+//  'layout-0': 'test.html' }
 function layoutTrack (test) {
   // implement a while loop
   // while isInMap === true, keep going
@@ -76,7 +86,7 @@ function layoutTrack (test) {
   // generate an object to store the layout tracker object
   const layoutTrackerObj = {}
 
-  // loop over array and generate the object
+  // loop over array and generate the object containing the map
   for (var i = layoutTracker.length; i > 0; i--) {
     Object.assign(layoutTrackerObj, {
       [`layout-${i-1}`]: `${layoutTracker[layoutTracker.length - i]}.html` 
@@ -86,9 +96,21 @@ function layoutTrack (test) {
   return layoutTrackerObj
 }
 
+// reads a markdown file and returns an object containing two things:
+//     1. front matter 
+//     2. markdown content
+function markdownParser (file) {
+  // read markdown file
+  const result = fs.readFileSync(path.resolve(__dirname, file), 'utf8')
+
+  // parse the content and return the front matter as an object
+  return frontMatterParser(result)
+}
+
  module.exports = {
   yamlParser,
   frontMatterParser,
   layoutTrack,
-  layoutMap
+  layoutMap,
+  markdownParser,
 }
