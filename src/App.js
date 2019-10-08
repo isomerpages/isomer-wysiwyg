@@ -1,60 +1,54 @@
 import React from 'react';
-// import logo from './logo.svg';
 import './App.css';
 import SimpleMDE from 'simplemde';
-import 'simplemde/dist/simplemde.min.css'
-import file from './test-files/pages/privacy.md'
-import utils from './utils'
-// import htmlFile from './test-files/layouts/simple-page.html'
+import 'simplemde/dist/simplemde.min.css';
+import file from './test-files/sample-markdown.md';
+import SimplePage from './layouts/SimplePage';
+import './editor.scss'
 
 class App extends React.Component {
-  
-  async componentDidMount() {
-    // load editor
-    const editor = new SimpleMDE()
-    editor.toggleSideBySide()
-   
-    // load editor with file 
-    const result = await fetch(file)
-    const markdown = await result.text()
-  
-    // parse the content
-    const markdownOutput = utils.frontMatterParser(markdown)
+  state = {
+    chunk: ""
+  }
 
-    // test
-    console.log(markdownOutput.configObj)
-    console.log(file)
-    // console.log(htmlFile)
+  fetchFile() {
+    return fetch(file)
+        .then((r) => r.text())
+  }
 
-    // load the editor with the original text
-    editor.value(markdownOutput.content)
-
-    // 
-    editor.codemirror.on('change', () => {
-      console.log('a')
-    })
-
-    // editor.value(marked(result))
-    /*
-    fetch(testFilePath)
-    .then(response => {
-      console.log(response.text())
-      return response.text()
-    })
-    .then(text => {
-      this.setState({
-        markdown: marked(text)
-      })
-    })
-    */
+  createEditor() {
+    const editor = new SimpleMDE({ spellChecker : false, hideIcons : ["side-by-side", "fullscreen", "preview"] });
     
+    this.fetchFile().then(value => {
+      editor.value(value);
+      this.setState({ chunk: editor.options.previewRender(editor.value()) });
+    });
+
+    editor.codemirror.on('change', () => {
+      let formattedVal = editor.options.previewRender(editor.value())
+      this.setState({ chunk: formattedVal })
+    })
+  }
+  displayEditor() {
+    return (
+      <div className="d-flex flex-row">
+        <div className="pane">
+          <textarea id="editor"></textarea>
+        </div>
+        <div className="pane">
+          <SimplePage chunk={this.state.chunk}/>
+        </div>
+      </div>
+    );
+  }
+
+  componentDidMount() {
+    this.createEditor();
+
   }
 
   render() {
-
-    return (
-      <textarea rows="4" cols="50"></textarea>
-    )
+    return this.displayEditor();
   }
 }
 
