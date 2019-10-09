@@ -7,7 +7,6 @@ export default class SimplePage extends Component {
     }
 
     componentDidMount() {
-        console.log(document.head.innerHTML);
     }
 
     // This following template was taken from the 'Simple Page' Layout 
