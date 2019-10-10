@@ -8,7 +8,7 @@ function ParagraphNode(props) {
     )
 }
 
-function Header1Node(props) {
+function HeaderOneNode(props) {
     return (
       <pre {...props.attributes}>
         <h1 {...props.attributes}>{props.children}</h1>
@@ -16,7 +16,7 @@ function Header1Node(props) {
     )
 }
 
-function Header2Node(props) {
+function HeaderTwoNode(props) {
     return (
       <pre {...props.attributes}>
         <h2 {...props.attributes}>{props.children}</h2>
@@ -29,7 +29,7 @@ function renderBlock(props, editor, next) {
       case 'paragraph':
         return <ParagraphNode {...props}/>
     case 'h1':
-        return <Header1Node {...props}/>
+        return <HeaderOneNode {...props}/>
       default:
         return next()
     }
