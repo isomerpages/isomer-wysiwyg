@@ -1,4 +1,6 @@
-import SoftBreak from 'slate-soft-break';
+import React from 'react'
+import SoftBreak from 'slate-soft-break'
+
 
 function MarkHotkey(options) {
   const { type, key } = options
@@ -18,6 +20,20 @@ function MarkHotkey(options) {
   }
 }
 
+function insertNewBreak() {
+  return {
+    onKeyDown(event, editor, next) {
+      if (event.key !== 'Enter') return next()
+      
+      // Prevent default characters from being inserted
+      event.preventDefault()
+
+      // Insert a block
+      editor.insertBlock(' ')
+    }
+  }
+}
+
 // Initialize a plugin for each mark...
 export const plugins = [
   MarkHotkey({ key: 'b', type: 'bold' }),
@@ -25,5 +41,9 @@ export const plugins = [
   MarkHotkey({ key: 'i', type: 'italic' }),
   MarkHotkey({ key: '~', type: 'strikethrough' }),
   MarkHotkey({ key: 'u', type: 'underline' }),
-  SoftBreak()
+  MarkHotkey({ key: 'h', type: 'header3' }), // make header3 work for the whole block
+  insertNewBreak(),
+  SoftBreak(),
 ]
+
+export default plugins
