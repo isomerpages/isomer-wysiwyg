@@ -5,12 +5,15 @@ import SimplePage from './layouts/SimplePage';
 import './editor.scss'
 import { Editor } from 'slate-react';
 import { Value } from 'slate';
-import SoftBreak from 'slate-soft-break';
 import marked from 'marked';
+import Html from 'slate-html-serializer'
+import pretty from 'pretty'
+import rules from 'htmlRules'
+import plugins from 'marks'
 
-const plugins = [
-  SoftBreak()
-]
+// Create a new serializer instance with our `rules` from above.
+const html = new Html({ rules })
+
 const initialValue = Value.fromJSON({
   document: {
     nodes: [
@@ -30,20 +33,46 @@ const initialValue = Value.fromJSON({
 
 class App extends React.Component {
   state = {
-    chunk: "",
-    editorValue: initialValue
+    // initialize display pane with initial value
+    chunk: '',// marked(initialValue.toJS().document.nodes[0].nodes[0].text),
+    // initialize editor with initial value
+    editorValue: initialValue,
+    init: '',
   }
 
-  fetchFile() {
+  fetchFile(file) {
     return fetch(file)
         .then((r) => r.text())
+        // this is to set initial value to be our imported markdown
+        .then((r) => {
+          this.setState( { chunk: marked(r) } )
+          // console.log(marked(r))
+          console.log(pretty(html.serialize(html.deserialize(marked(r)), {ocd: true})))
+        })
+        .then((r) => {
+          window.init = this.state.init
+        })
   }
-  onEditorChange = (change) => {
-    console.log(change.value.document);
-    this.setState({ editorValue: change.value })
-    marked.setOptions({ sanitize: true })
-    this.setState({ chunk: marked(change.value.document.text) })
 
+  componentDidMount() {
+    this.fetchFile(file)
+  }
+
+  onEditorChange = (change) => {
+    // const content = JSON.stringify(change.value.toJSON())
+    // console.log(content)
+
+    // this prevents trigger when only selections are made
+    if (change.value.document !== this.state.editorValue.document) {
+      console.log(change.value)
+
+      // update the state to reflect new value on editor pane
+      this.setState({ editorValue: change.value })
+      marked.setOptions({ sanitize: true })
+
+      // update the state to reflect new value for display pane
+      this.setState({ chunk: marked(change.value.document.text) })
+    }
   }
 
   displayEditor() {
@@ -52,7 +81,10 @@ class App extends React.Component {
         <div className="pane">
           <Editor 
             value={this.state.editorValue}
-            onChange={this.onEditorChange}  
+            onChange={this.onEditorChange}
+            // onKeyDown={this.onKeyDown} 
+            // renderBlock={this.renderBlock} 
+            renderMark={this.renderMark}
             plugins={plugins}
           />
         </div>
@@ -65,6 +97,24 @@ class App extends React.Component {
 
   render() {
     return this.displayEditor();
+  }
+
+  // Add a `renderMark` method to render marks.
+  renderMark = (props, editor, next) => {
+    switch (props.mark.type) {
+      case 'bold':
+        return <strong>{props.children}</strong>
+      case 'code':
+        return <code>{props.children}</code>
+      case 'italic':
+        return <em>{props.children}</em>
+      case 'strikethrough':
+        return <del>{props.children}</del>
+      case 'underline':
+        return <u>{props.children}</u>
+      default:
+        return next()
+    }
   }
 }
 
