@@ -20,7 +20,7 @@ class App extends React.Component {
   displayEditor() {
     return (
       <div className="d-flex">
-        <div className="pane">
+        <div className="pane p-5">
           <RichTextEditor/>
         </div>
         <div className="pane">
