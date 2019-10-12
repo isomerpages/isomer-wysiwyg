@@ -3,13 +3,13 @@ import React from 'react';
 const BLOCK_TAGS = {
   blockquote: 'quote',
   p: 'paragraph',
-  a: 'hyperlink',
+  a: 'link',
   b: 'semi-bold',
   h3: 'header3',
   pre: 'code',
-  ul: 'unordered-list',
-  ol: 'ordered-list',
-  li: 'list',
+  ul: 'bulleted-list',
+  ol: 'numbered-list',
+  li: 'list-item',
   table: 'table',
   tr: 'table-row',
   th: 'table-header',
@@ -41,37 +41,31 @@ export const rules = [
           },
           nodes: next(el.childNodes),
         }
-      }
+      } 
 
     },
     serialize(obj, children) {
       if (obj.object === 'block') {
         switch (obj.type) {
-          case 'code':
-            return (
-              <pre>
-                <code>{children}</code>
-              </pre>
-            )
           case 'paragraph':
             // we can inclde class or id data inside the slate data object
-            return <p class={obj.data.get('className')} id={obj.data.get('idName')}>{children}</p>
-          case 'hyperlink':
-            return <a href={obj.data.get('href')} className={obj.data.get('className')}>{children}</a>
+            return <p className={obj.data.get('className')} id={obj.data.get('idName')}>{children}</p>
+          case 'link': // problem serializing links
+            return <a href={obj.data.get('href')}>{children}</a>
           case 'semi-bold':
             return <b>{children}</b>
           case 'header3':
             return <h3 id={obj.data.get('idName')}>{children}</h3>
           case 'quote':
             return <blockquote>{children}</blockquote>
-          case 'unordered-list':
+          case 'bulleted-list':
             return <ul>{children}</ul>
-          case 'ordered-list':
+          case 'numbered-list':
             return <ol>{children}</ol>
-          case 'list':
+          case 'list-item':
             return <li>{children}</li>
           case 'table':
-            return <table class={obj.data.get('className')}>{children}</table>
+            return <table className={obj.data.get('className')}>{children}</table>
             // default implementation: https://github.com/jasonphillips/slate-deep-table/blob/master/lib/defaultSerializers.js
           case 'table-row':
             return <tr>{children}</tr>
@@ -104,6 +98,12 @@ export const rules = [
             return <em>{children}</em>
           case 'underline':
             return <u>{children}</u>
+          case 'code':
+              return (
+                <pre>
+                  <code>{children}</code>
+                </pre>
+              )
           default:
             return
         }

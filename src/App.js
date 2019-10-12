@@ -1,11 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom'
-import './App.css';
-import file from './test-files/sample-markdown.md'
-import SimplePage from './layouts/SimplePage'
-import './editor.scss'
 import { Editor } from 'slate-react'
 import { Value } from 'slate'
+import './App.scss';
 import marked from 'marked'
 import { Button, Icon, Menu } from './components'
 import Html from 'slate-html-serializer'
@@ -13,10 +10,32 @@ import pretty from 'pretty'
 import rules from './htmlRules'
 import plugins from './marks'
 import { css } from 'emotion'
+import { thisExpression } from '@babel/types';
+// import { thisExpression } from '@babel/types';
+// import SimplePage from './layouts/SimplePage'
+// import file from './test-files/sample-markdown.md'
 
-// Create a new serializer instance with our `rules` from above.
+// Instantiate a new serializer instance with the imported rules
 const html = new Html({ rules })
 
+// set default node
+const DEFAULT_NODE = 'paragraph'
+
+// helper functions for links
+function wrapLink(editor, href) {
+  editor.wrapInline({
+    type: 'link',
+    data: { href },
+  })
+
+  editor.moveToEnd()
+}
+
+function unwrapLink(editor) {
+  editor.unwrapInline('link')
+}
+
+// create initial value to read in
 const initialValue = Value.fromJSON({
   document: {
     nodes: [
@@ -26,7 +45,7 @@ const initialValue = Value.fromJSON({
         nodes: [
           {
             object: 'text',
-            text: 'A line of text in a paragraph.',
+            text: `What's in a paragraph? Is it a word? or ...`,
           },
         ],
       },
@@ -34,79 +53,23 @@ const initialValue = Value.fromJSON({
   },
 })
 
-const MarkButton = ({ editor, type, icon }) => {
-  const { value } = editor
-  const isActive = value.activeMarks.some(mark => mark.type === type)
-  return (
-    <Button
-      reversed
-      active={isActive}
-      onMouseDown={event => {
-        event.preventDefault()
-        editor.toggleMark(type)
-      }}
-    >
-      <Icon>{icon}</Icon>
-    </Button>
-  )
-}
-
-const HoverMenu = React.forwardRef(({ editor }, ref) => {
-  const root = window.document.getElementById('root')
-  return ReactDOM.createPortal(
-    <Menu
-      ref={ref}
-      className={css`
-        padding: 8px 7px 6px;
-        position: absolute;
-        z-index: 1;
-        top: -10000px;
-        left: -10000px;
-        margin-top: -6px;
-        opacity: 0;
-        background-color: #222;
-        border-radius: 4px;
-        transition: opacity 0.75s;
-      `}
-    >
-      <MarkButton editor={editor} type="bold" icon="format_bold" />
-      <MarkButton editor={editor} type="italic" icon="format_italic" />
-      <MarkButton editor={editor} type="underline" icon="format_underlined" />
-      <MarkButton editor={editor} type="code" icon="code" />
-      <MarkButton editor={editor} type="strikethrough" icon="X" />
-      <MarkButton editor={editor} type="header3" icon="h3" />
-    </Menu>,
-    root
-  )
-})
-
 class App extends React.Component {
+
+  render() {
+    return this.displayEditor();
+  }
+
   state = {
     // initialize display pane with initial value
-    chunk: '',// marked(initialValue.toJS().document.nodes[0].nodes[0].text),
+    chunk: '', // marked(initialValue.toJS().document.nodes[0].nodes[0].text),
+    
     // initialize editor with initial value
     value: initialValue,
-    init: '',
     menu: '',
   }
 
-  fetchFile(file) {
-    return fetch(file)
-        .then((r) => r.text())
-        // this is to set initial value to be our imported markdown
-        .then((r) => {
-          this.setState( { chunk: marked(r) } )
-          // console.log(pretty(marked(r)))
-          // console.log(pretty(html.serialize(html.deserialize(marked(r)))))
-          // console.log(html.deserialize(marked(r)))
-        })
-        .then((r) => {
-          window.init = this.state.init
-        })
-  }
-
   componentDidMount() {
-    this.fetchFile(file)
+    // this.fetchFile(file)
     this.updateMenu()
   }
 
@@ -114,16 +77,251 @@ class App extends React.Component {
     this.updateMenu()
   }
 
+  fetchFile(file) {
+    return fetch(file)
+        .then((r) => r.text())
+        // this is to set initial value to be our imported markdown
+        .then((r) => {
+          // set state for 
+          this.setState( { chunk: pretty(html.serialize(html.deserialize(marked(r)))) } )// marked(r) } )
+          
+          // testing the serialization and deserialization
+          // console.log(pretty(html.serialize(html.deserialize(marked(r)))))
+          // console.log(html.deserialize(marked(r)))
+        })
+  }
+
   menuRef = React.createRef()
 
+  /** 
+  Menu elements
+  */
+
+  
   /**
-   * Update the menu's absolute position.
+   *
+   * Marks
+   * 
+   */
+
+  onClickMark = (editor, event, type) => {
+      event.preventDefault()
+      editor.toggleMark(type)
+  }
+
+  // checks whether the value selected has a mark
+  hasMark = type => {
+    const { value } = this.state
+    return value.activeMarks.some(mark => mark.type === type)
+  }
+
+  // returns the html to render the mark button
+  MarkButton = ({ editor, type, icon }) => {
+    const isActive = this.hasMark(type)
+    return (
+      <Button
+        reversed
+        active={isActive}
+        onMouseDown={event => {
+          this.onClickMark(editor, event, type)
+        }}
+      >
+        <Icon>{icon}</Icon>
+      </Button>
+    )
+  }
+
+  /*
+  *
+  * Blocks
+  *
+  */
+
+  // checks whether the block is of a certain type
+  hasBlock = type => {
+    const { value } = this.state
+    return value.blocks.some(node => node.type === type)
+  }
+
+  // toggles the block type
+
+  onClickBlock = (editor, event, type) => {
+    event.preventDefault()
+    const { value } = editor
+    const { document } = value
+
+    // Handle everything but list buttons.
+    if (type !== 'bulleted-list' && type !== 'numbered-list') {
+      const isActive = this.hasBlock(type)
+      const isList = this.hasBlock('list-item')
+
+      editor.setBlocks(isActive ? DEFAULT_NODE : type)
+
+      if (isList) {
+        // if it's already a list, we want to unlist it
+        editor
+          .unwrapBlock('bulleted-list')
+          .unwrapBlock('numbered-list')
+      } 
+    } else {
+      // Handle the extra wrapping required for list buttons.
+      const parent = document.getParent(this.state.value.blocks.first().key)
+      const isList = this.hasBlock('list-item')
+      const isType = parent.type === type
+
+      if (isList && isType) {
+        // if it's already a list item, but you want to unlist it
+        editor
+          .setBlocks(DEFAULT_NODE)
+          .unwrapBlock('bulleted-list')
+          .unwrapBlock('numbered-list')
+      } else if (isList) {
+        // if it's a list item but you want to switch to another type of list
+        editor
+          .unwrapBlock(
+            type === 'bulleted-list' ? 'numbered-list' : 'bulleted-list'
+          )
+          .wrapBlock(type)
+      } else {
+        // if not yet a list item, make it a list item
+        editor.setBlocks('list-item').wrapBlock(type)
+      }
+    }
+  }
+
+
+  // returns the code to render the block
+  BlockButton = ({ editor, type, icon }) => {
+    let isActive = this.hasBlock(type)
+    if (['numbered-list', 'bulleted-list'].includes(type)) {
+      const { value: { document, blocks } } = this.state
+
+      if (blocks.size > 0) {
+        const parent = document.getParent(blocks.first().key)
+        isActive = this.hasBlock('list-item') && parent && parent.type === type
+      }
+    }
+
+    // add a line for different kind of css 
+    return (
+      <Button
+        reversed
+        active={isActive}
+        onMouseDown={event => {
+          this.onClickBlock(editor, event, type)
+        }}
+      >
+        <Icon>{icon}</Icon>
+      </Button>
+    )
+  }
+
+  /*
+  *
+  * Links
+  * 
+  */
+
+  hasLinks = () => {
+    const { value } = this.state
+    return value.inlines.some(inline => inline.type === 'link')
+  }
+
+  onClickLink = (editor, event) => {
+    // prevent default behavior
+    event.preventDefault()
+
+    const { value } = editor
+    const hasLinks = this.hasLinks()
+
+    if (hasLinks) {
+      // unwrap link if there's already a link
+      editor.command(unwrapLink)
+    } else if (value.selection.isExpanded) {
+      // otherwise, add a link
+      const href = window.prompt('Enter the URL of the link:')
+
+      if (href == null) {
+        return
+      }
+
+      editor.command(wrapLink, href)
+    } else {
+      const href = window.prompt('Enter the URL of the link:')
+
+      if (href == null) {
+        return
+      }
+
+      const text = window.prompt('Enter the text for the link:')
+
+      if (text == null) {
+        return
+      }
+
+      editor
+        .insertText(text)
+        .moveFocusBackward(text.length)
+        .command(wrapLink, href)
+    }
+  }
+
+  LinksButton = ({ editor, event, icon}) => {
+    let isActive = this.hasLinks()
+    return (
+      <Button 
+        reversed
+        active={isActive} 
+        onMouseDown={event => {
+          this.onClickLink(editor, event)
+        }}
+      >
+        <Icon>{icon}</Icon>
+      </Button>
+    )
+  }
+  /*
+  * Menu
+  */
+
+  HoverMenu = React.forwardRef(({ editor }, ref) => {
+    const root = window.document.getElementById('root')
+    return ReactDOM.createPortal(
+      <Menu
+        ref={ref}
+        className={css`
+          padding: 5px 5px 5px;
+          position: absolute;
+          z-index: 1;
+          top: -10000px;
+          left: -10000px;
+          margin-top: -3px;
+          opacity: 0;
+          background-color: #222;
+          border-radius: 4px;
+          transition: opacity 0.75s;
+        `}
+      >
+        <this.MarkButton editor={editor} type="bold" icon="format_bold" />
+        <this.MarkButton editor={editor} type="italic" icon="format_italic" />
+        <this.MarkButton editor={editor} type="underline" icon="format_underlined" />
+        <this.MarkButton editor={editor} type="code" icon="code" />
+        <this.MarkButton editor={editor} type="strikethrough" icon="X" />
+        <this.BlockButton editor={editor} type="header3" icon="h3" />
+        <this.BlockButton editor={editor} type="numbered-list" icon="bullet" />
+        <this.LinksButton editor={editor} icon="link" />
+      </Menu>,
+      root
+    )
+  })
+
+  /**
+   * Update the menu's absolute position on the screen
    */
 
   updateMenu = () => {
     const menu = this.menuRef.current
     if (!menu) return
-    // console.log(this.menuRef)
 
     const { value } = this.state
     const { fragment, selection } = value
@@ -145,45 +343,45 @@ class App extends React.Component {
       rect.width / 2}px`
   }
 
-  onEditorChange = (change) => {
-    // const content = JSON.stringify(change.value.toJSON())
-    // console.log(content)
-
+  onEditorChange = ({ value }) => {
     // this prevents trigger when only selections are made
     // if (change.value.document !== this.state.value.document) {
-      console.log(change.value)
+    // console.log(change.value)
 
       // update the state to reflect new value on editor pane
-      this.setState({ value: change.value })
+      this.setState({ value })
+     
+      // this is for the right hand side display
       marked.setOptions({ sanitize: true })
 
       // update the state to reflect new value for display pane
-      this.setState({ chunk: marked(change.value.document.text) })
+      // this.setState({ chunk: marked(this.state.value.document.text) })
+      // console.log(html.serialize(value))
     // }
   }
 
   displayEditor() {
     return (
-      <div className="d-flex flex-row p-5 l-5">
+      <div className="d-flex flex-row">
         <div className="pane">
           <Editor 
             value={this.state.value}
             onChange={this.onEditorChange}
             renderEditor={this.renderEditor}
             renderMark={this.renderMark}
+            renderBlock={this.renderBlock}
+            renderInline={this.renderInline}
             plugins={plugins}
           />
         </div>
+        {/* need to define serializers for list and other items */}
         {/* <div className="pane">
           <SimplePage chunk={this.state.chunk}/>
-        </div> */}
+        </div>  */}
       </div>
     );
   }
 
-  render() {
-    return this.displayEditor();
-  }
 
   // Add a `renderMark` method to render marks.
   renderMark = (props, editor, next) => {
@@ -198,9 +396,44 @@ class App extends React.Component {
         return <del>{props.children}</del>
       case 'underline':
         return <u>{props.children}</u>
-      case 'header3':
-          return <h3>{props.children}</h3>
       default:
+        return next()
+    }
+  }
+
+  renderBlock = (props, editor, next) => {
+    const { attributes, children, node } = props
+
+    switch (node.type) {
+      case 'header3':
+        return <h3 {...attributes}>{children}</h3>
+      case 'bulleted-list':
+        return <ul {...attributes}>{children}</ul>
+      case 'numbered-list':
+          return <ol {...attributes}>{children}</ol>
+      case 'list-item':
+        return <li {...attributes}>{children}</li>
+      default:
+        return next()
+    }
+  }
+
+  // we will need a serializer for this as well - current implementation is not working
+  renderInline = (props, editor, next) => {
+    const { attributes, children, node } = props
+
+    switch (node.type) {
+      case 'link': 
+        const { data } = node
+        const href = data.get('href')
+        return (
+          // <a {...attributes} href={href}>
+          <a href={href}>
+            {children}
+          </a>
+        )
+
+      default: 
         return next()
     }
   }
@@ -210,10 +443,10 @@ class App extends React.Component {
     return (
       <React.Fragment>
         {children}
-        <HoverMenu ref={this.menuRef} editor={editor} />
+        <this.HoverMenu ref={this.menuRef} editor={editor} />
       </React.Fragment>
     )
   }
 }
 
-export default App;
+export default App
