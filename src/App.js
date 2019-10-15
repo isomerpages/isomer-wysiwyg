@@ -12,7 +12,6 @@ import plugins from './marks'
 import Image from './images'
 import { css } from 'emotion'
 // import { thisExpression } from '@babel/types';
-// import { thisExpression } from '@babel/types';
 // import SimplePage from './layouts/SimplePage'
 // import file from './test-files/sample-markdown.md'
 
@@ -321,23 +320,51 @@ class App extends React.Component {
   /*
   * Images
   */
-
-  onClickImage = (editor, event) => {
+  
+  onFileUpload = async (editor, event) => {
+    // prevent default behavior
     event.preventDefault()
-    const src = window.prompt('Enter the URL of the image:')
+
+    // load file to be uploaded
+    let file = event.target.files[0];
+    
+    await this.setState({
+      file: file,
+      url: URL.createObjectURL(file)
+    })
+
+    console.log(this.state.url)
+
+    // filler value for src
+    const src = this.state.url
+
+    // upload to Github
+
+    // get the url from Github as src
+
+
     if (!src) return
     editor.command(insertImage, src)
   }
 
+  onClickImageButton = () => {
+    // click on hidden button
+    document.getElementById('image-upload-input').click()
+  }
+
   // image button
-  ImageButton = ({ editor, event, icon}) => {
+  ImageButton = ({ editor, icon}) => {
     return (
       <Button 
         reversed
-        onMouseDown={event => {
-          this.onClickImage(editor, event)
-        }}
+        onMouseDown={this.onClickImageButton}
       >
+        <input 
+          id='image-upload-input' 
+          hidden 
+          type='file'
+          onChange={event => this.onFileUpload(editor, event)}
+        />
         <Icon>{icon}</Icon>
       </Button>
     )

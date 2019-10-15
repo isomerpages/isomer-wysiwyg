@@ -40,21 +40,6 @@ function BlockHotkey(options) {
   }
 }
 
-// function onDeleteImage() {
-//   //const { type, key } = options
-
-//   return {
-//     onKeyDown(event, editor, next) {
-//       // If it doesn't match our `key`, let other plugins handle it.
-//       if (!event.key === "Backspace") return next()
-
-//       // Toggle the block `type`.
-//       console.log(event)
-//     },
-//   }
-// }
-
-
 // function SoftBreak(options = {}) {
 //   return {
 //     onKeyDown(event, editor, next) {
@@ -88,7 +73,6 @@ export const plugins = [
       })
     },
   }),
-  onDeleteImage(),
 ]
 
 export default plugins
