@@ -1,5 +1,7 @@
 // import React from 'react'
 import InsertBlockOnEnter from 'slate-insert-block-on-enter'
+import DropOrPasteImages from 'slate-drop-or-paste-images'
+
 
 
 function MarkHotkey(options) {
@@ -8,20 +10,6 @@ function MarkHotkey(options) {
   // Return our "plugin" object, containing the `onKeyDown` handler.
   return {
     onKeyDown(event, editor, next) {
-      // testing for bulleted lists
-      const doc = editor.props.value.document
-      //console.log(doc.getBlocks(editor.value.blocks.first()))
-
-      // console.log(doc.getPreviousSibling(editor.value.blocks.first().key))
-      // console.log(doc.getNextSibling(doc.getPreviousSibling(editor.value.blocks.first().key).key))
-
-      // if (doc.getPreviousBlock(editor.value.blocks.first().key)) {
-      //   console.log(doc.getNextBlock(doc.getPreviousBlock(editor.value.blocks.first().key).key))
-      //   // if (doc.getNextBlock(doc.getPreviousBlock(editor.value.blocks.first().key).key) === '') {
-      //   //   console.log('insert new block!')
-      //   // }
-      // }
-
       // If it doesn't match our `key`, let other plugins handle it.
       if (!event.ctrlKey || event.key !== key) return next()
 
@@ -52,6 +40,21 @@ function BlockHotkey(options) {
   }
 }
 
+// function onDeleteImage() {
+//   //const { type, key } = options
+
+//   return {
+//     onKeyDown(event, editor, next) {
+//       // If it doesn't match our `key`, let other plugins handle it.
+//       if (!event.key === "Backspace") return next()
+
+//       // Toggle the block `type`.
+//       console.log(event)
+//     },
+//   }
+// }
+
+
 // function SoftBreak(options = {}) {
 //   return {
 //     onKeyDown(event, editor, next) {
@@ -76,6 +79,16 @@ export const plugins = [
   // insertNewBreak(),
   // SoftBreak(),
   InsertBlockOnEnter('paragraph'),
+  DropOrPasteImages({
+    insertImage: (transform, file) => {
+      return transform.insertBlock({
+        type: 'image',
+        isVoid: true,
+        data: { file },
+      })
+    },
+  }),
+  onDeleteImage(),
 ]
 
 export default plugins

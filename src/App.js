@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom'
 import { Editor } from 'slate-react'
-import { Value } from 'slate'
+import { Block, Value } from 'slate'
 import './App.scss';
 import marked from 'marked'
 import { Button, Icon, Menu } from './components'
@@ -9,8 +9,9 @@ import Html from 'slate-html-serializer'
 import pretty from 'pretty'
 import rules from './htmlRules'
 import plugins from './marks'
+import Image from './images'
 import { css } from 'emotion'
-import { thisExpression } from '@babel/types';
+// import { thisExpression } from '@babel/types';
 // import { thisExpression } from '@babel/types';
 // import SimplePage from './layouts/SimplePage'
 // import file from './test-files/sample-markdown.md'
@@ -35,6 +36,41 @@ function unwrapLink(editor) {
   editor.unwrapInline('link')
 }
 
+// helper functions for images
+function insertImage(editor, src, target) {
+  if (target) {
+    editor.select(target)
+  }
+
+  editor.insertBlock({
+    type: 'image',
+    data: { src },
+  })
+}
+
+// editor's schema
+const schema = {
+  document: {
+    last: { type: 'paragraph' },
+    normalize: (editor, { code, node, child }) => {
+      switch (code) {
+        case 'last_child_type_invalid': {
+          const paragraph = Block.create('paragraph')
+          return editor.insertNodeByKey(node.key, node.nodes.size, paragraph)
+        }
+        default:
+          return
+      }
+    },
+  },
+  blocks: {
+    image: {
+      isVoid: true,
+    },
+  },
+}
+
+
 // create initial value to read in
 const initialValue = Value.fromJSON({
   document: {
@@ -52,6 +88,7 @@ const initialValue = Value.fromJSON({
     ],
   },
 })
+
 
 class App extends React.Component {
 
@@ -280,6 +317,32 @@ class App extends React.Component {
       </Button>
     )
   }
+
+  /*
+  * Images
+  */
+
+  onClickImage = (editor, event) => {
+    event.preventDefault()
+    const src = window.prompt('Enter the URL of the image:')
+    if (!src) return
+    editor.command(insertImage, src)
+  }
+
+  // image button
+  ImageButton = ({ editor, event, icon}) => {
+    return (
+      <Button 
+        reversed
+        onMouseDown={event => {
+          this.onClickImage(editor, event)
+        }}
+      >
+        <Icon>{icon}</Icon>
+      </Button>
+    )
+  }
+
   /*
   * Menu
   */
@@ -310,6 +373,7 @@ class App extends React.Component {
         <this.BlockButton editor={editor} type="header3" icon="h3" />
         <this.BlockButton editor={editor} type="numbered-list" icon="bullet" />
         <this.LinksButton editor={editor} icon="link" />
+        <this.ImageButton editor={editor} icon="image" />
       </Menu>,
       root
     )
@@ -372,6 +436,7 @@ class App extends React.Component {
             renderBlock={this.renderBlock}
             renderInline={this.renderInline}
             plugins={plugins}
+            schema={schema}
           />
         </div>
         {/* need to define serializers for list and other items */}
@@ -413,6 +478,10 @@ class App extends React.Component {
           return <ol {...attributes}>{children}</ol>
       case 'list-item':
         return <li {...attributes}>{children}</li>
+      case 'image': {
+        const src = node.data.get('src')
+        return <Image {...props} editor={editor} src={src}>{children}</Image>
+      }
       default:
         return next()
     }
@@ -427,8 +496,8 @@ class App extends React.Component {
         const { data } = node
         const href = data.get('href')
         return (
-          // <a {...attributes} href={href}>
-          <a href={href}>
+          <a {...attributes} onClick={() => window.open(href)} href={href}>
+          {/* <a href={href}> */}
             {children}
           </a>
         )
