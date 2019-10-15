@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Editor } from 'slate-react';
 import { Value } from 'slate';
 import { HoverMenu } from './HoveringMenu'
+import { isEqual } from 'lodash'
 
 const initialValue = Value.fromJSON({
     document: {
@@ -22,7 +23,9 @@ const initialValue = Value.fromJSON({
 
 export default class RichTextEditor extends Component {
     state = {
-        value: initialValue
+        value: initialValue,
+        showLinkAlter: false,
+        menuPosition : []
     }
 
     constructor(props) {
@@ -31,33 +34,51 @@ export default class RichTextEditor extends Component {
         this.menuRef = React.createRef({})
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps, prevState) {
         let textSelection = window.getSelection()
         const menu = this.menuRef.current
         let { value } = this.state
         let { fragment, selection } = value
+        let linkInput = document.getElementById('linkInput')
         
         /**
          * When editor is in focus, show menu atop 
          * the cursor's position in the window
+         * when a chunk of text selected
          */
+
         if (textSelection.rangeCount > 0 && fragment.text) {
             let rect = textSelection.getRangeAt(0).getBoundingClientRect()
-            menu.style.top = `${rect.top + window.pageYOffset - menu.offsetHeight}px`;
-            menu.style.left = `${rect.left +
-                window.pageXOffset -
-                menu.offsetWidth / 2 +
-                rect.width / 2}px`;
-            menu.style.visibility = "visible"
+            let x = rect.left + window.pageXOffset - menu.offsetWidth / 2 + rect.width / 2
+            let y = rect.top + window.pageYOffset - menu.offsetHeight
+
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+
+            // /**
+            //  * Stores the state of the most recent position of the menu
+            //  * so that when an input box is created it can remain there
+            //  */
+            // if (!isEqual([x, y], prevState.menuPosition) || this.state.menuPosition.length === 0) {
+            //     this.setState({ menuPosition: [x, y] })
+            // }
         }
 
         /**
          * If editor is out of focus or
          * selection is collapsed, hide the view
          */
-        if (selection.isBlurred || selection.isCollapsed) {
+        if ((selection.isBlurred || selection.isCollapsed) && !linkInput) {
             menu.style.visibility = "hidden"
+        } else {
+            menu.style.visibility = "visible"
         }
+
+        // if (this.state.showLinkAlter) {
+        //     linkInput.focus()
+        //     menu.style.left = `${this.state.menuPosition[0]}px`
+        //     menu.style.top = `${this.state.menuPosition[1]}px`
+        // }
     }
     
     render() {
@@ -70,6 +91,7 @@ export default class RichTextEditor extends Component {
                 renderMark={this.renderMark}
                 renderBlock={this.renderBlock}
                 renderEditor={this.renderEditor}
+                renderInline={this.renderInline}
                 autoFocus
             />
         )
@@ -84,7 +106,7 @@ export default class RichTextEditor extends Component {
         return (
             <React.Fragment>
                 {children}
-                <HoverMenu ref={this.menuRef} editor={editor}/>
+                <HoverMenu ref={this.menuRef} editor={editor} showLinkAlter={this.state.showLinkAlter} changeLinkAlter={() => this.setState({ showLinkAlter: !this.state.showLinkAlter})}/>
             </React.Fragment>
         )
     }
@@ -102,15 +124,39 @@ export default class RichTextEditor extends Component {
             mark = "italic"
         } else if (event.metaKey && event.key === "u") {
             mark = "underlined"
-        } else if (event.key === "Enter") {
-            /**
-             * Overrides default enter operation to
-             * not only splitBlock, but to also set
-             * it to the default type `paragraph`
-             */
-            editor
-                .splitBlock()
-                .setBlocks('paragraph')
+        } else if (event.key === "Backspace") {
+            const isList = editor.value.blocks.some(node => node.type === 'list-item')
+            const currentBlocks = editor.value.blocks
+
+            if (isList && currentBlocks.first().text.length === 0) {
+                editor
+                    .unwrapBlock('bulleted-list')
+                    .setBlocks('paragraph')
+            } else {
+                editor.deleteBackward(1)
+            }
+            
+
+        // } else if (event.key === "Enter") {
+        //     // if (ed)
+        //     let blockType = 'paragraph'
+        //     // /**
+        //     //  * Overrides default enter operation to
+        //     //  * not only splitBlock, but to also set
+        //     //  * it to the default type `paragraph`
+        //     //  */
+        //     // if (editor.value.blocks.some(node => node.type === 'block-quote')) {
+        //     //     blockType = 'block-quote'
+        //     // }
+
+        //     if (editor.value.blocks.some(node => node.type === 'list-item')) {
+        //         blockType = "list-item"
+        //     }
+
+        //     editor
+        //         .splitBlock()
+        //         .setBlocks(blockType)
+
         } else {
             return next()
         }
@@ -145,10 +191,40 @@ export default class RichTextEditor extends Component {
         switch (node.type) {
             case 'heading-one':
                 return <h1 {...attributes} className="pb-4">{children}</h1>
+            case 'heading-two':
+                return <h2 {...attributes} className="pb-3">{children}</h2>
+            case 'block-quote':
+                return <blockquote {...attributes}>{children}</blockquote>
             case 'paragraph':
                 return <p {...attributes} className="pb-2">{children}</p>
+            case 'list-item':
+                return <li {...attributes}>{children}</li>
+            case 'bulleted-list':
+                return <ol {...attributes}>{children}</ol>
             default:
                 return next()
+        }
+    }
+
+    /**
+     * inline rendering configuration
+     */
+    renderInline = (props, editor, next) => {
+        const { attributes, children, node } = props
+
+        switch (node.type) {
+            case 'link': {
+                const { data } = node
+                const href = data.get('href')
+                return (
+                    <a {...attributes} href={href}>
+                        {children}
+                    </a>
+                )
+            }
+            default: {
+                return next()
+            }
         }
     }
 

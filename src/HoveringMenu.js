@@ -1,15 +1,48 @@
-import React, { Component } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom'
+import { nullLiteral } from '@babel/types'
 
 
-const HoverMenu = React.forwardRef(({ editor }, ref) => {
+const HoverMenu = React.forwardRef(({ editor, changeLinkAlter, showLinkAlter }, ref) => {
+    const root = document.getElementById('root')
+
+    const onLinkAlterKeyDown = (event) => {
+        if (event.key === "Enter") {
+            let url = event.target.value
+                editor.wrapInline({
+                        type : 'link',
+                        data: {
+                            href : url
+                        }
+                    })
+            changeLinkAlter()
+        }
+    }
+
+    return ReactDOM.createPortal(
+        <Menu ref={ref}>
+            { showLinkAlter ? 
+                <input type="text" id="linkInput" onKeyDown={onLinkAlterKeyDown} autoComplete="off"/> : 
+                <React.Fragment>
+                    <MarkButton editor={editor} type='bold'>bold</MarkButton>
+                    <MarkButton editor={editor} type='italic'>italic</MarkButton>
+                    <MarkButton editor={editor} type='underlined'>underlined</MarkButton>
+                    <HeadingButton editor={editor} type='heading-one'>H1</HeadingButton>
+                    <HeadingButton editor={editor} type='heading-two'>H2</HeadingButton>
+                    <HeadingButton editor={editor} type='block-quote'>quote</HeadingButton>
+                    <HeadingButton editor={editor} type='bulleted-list'>list</HeadingButton>
+                    <InlineButton editor={editor} onClick={changeLinkAlter}>link</InlineButton>
+                </React.Fragment>
+            }
+        </Menu>
+    , root)
+})
+
+const HoverLinkPopup = React.forwardRef(({ editor }, ref) => {
     const root = document.getElementById('root')
     return ReactDOM.createPortal(
         <Menu ref={ref}>
-            <MarkButton editor={editor} type='bold'>bold</MarkButton>
-            <MarkButton editor={editor} type='italic'>italic</MarkButton>
-            <MarkButton editor={editor} type='underlined'>underlined</MarkButton>
-            <HeadingButton editor={editor} type='heading-one'>H1</HeadingButton>
+            <AlterLinkMenu />
         </Menu>
     , root)
 })
@@ -22,6 +55,41 @@ const Menu = React.forwardRef((props, ref) => {
     )
 })
 
+const AlterLinkMenu = (props) => {
+    let { editor } = props
+    return nullLiteral;
+}
+
+const InlineButton = (props) => {
+    let { editor } = props
+    const hasLink = editor.value.inlines.some(node => node.type === "link")
+
+    return (
+        <button
+            className={hasLink ? "button-active" : 'button-dead'}
+            onMouseDown={(event) => {
+                props.onClick()
+                // if (hasLink) {
+                //     editor.unwrapInline({
+                //         type : 'link'
+                //     })
+                // } else {
+                //     const link = window.prompt("Enter URL Link: ")
+                //     editor.wrapInline({
+                //         type : 'link',
+                //         data: {
+                //             href : link
+                //         }
+                //     })
+                // }
+                event.preventDefault()
+            }}
+        >
+            {props.children}
+        </button>
+    );
+}
+
 const MarkButton = (props) => {
     let { editor, type } = props
     let activeMarks = editor.value.activeMarks
@@ -33,7 +101,7 @@ const MarkButton = (props) => {
             className={className}
             onMouseDown={(event) => {
                 editor.toggleMark(type)
-                event.preventDefault()
+                // event.preventDefault()
             }}
         >
             {props.children}
@@ -42,25 +110,62 @@ const MarkButton = (props) => {
 }
 
 const HeadingButton = (props) => {
-    let { editor, type } = props
-    let isActive = editor.value.blocks.some(node => node.type === type)
-    let className = isActive ? "button-active" : "button-dead"
+    const { editor, type } = props
+    let { value } = editor
+    let { document } = value
+    let isActive = value.blocks.some(node => node.type === type)
+
+    if (value.blocks.size > 0) {
+        let parent = document.getParent(value.blocks.first().key)
+        if (parent && ['bulleted-list'].includes(parent.type)) {
+            isActive = type === parent.type
+        }
+    }
+
+    const className = isActive ? "button-active" : "button-dead"
 
     return (
         <button
             className={className}
-            onMouseDown={(event) => {
-                if (!isActive) {
-                    editor.setBlocks(type)
-                } else {
-                    editor.setBlocks('paragraph')
-                }
-                event.preventDefault()
-            }}
+            onMouseDown={(event) => onHeadingClick(event, editor, type)}
         >
             {props.children}
         </button>
     )
+}
+
+const onHeadingClick = (event, editor, type) => {
+    const { document } = editor.value
+    const isActive = editor.value.blocks.some(node => node.type === type)
+    const isList = editor.value.blocks.some(node => node.type === "list-item")
+
+    if (type !== 'bulleted-list') {
+        editor.setBlocks(isActive ? 'paragraph' : type)
+
+        if (isList) {
+            editor.unwrapBlock('bulleted-list')
+        }
+
+    } else {
+        let parent = document.getParent(editor.value.blocks.first().key)
+        const isType = parent.type === type
+    
+        if (isList && isType) {
+            editor
+                .setBlocks('paragraph')
+                .unwrapBlock('bulleted-list')
+        } else if (isList) {
+            editor
+                .unwrapBlock('bulleted-list')
+                .wrapBlock(type)
+        } else {
+            editor
+                .setBlocks('list-item')
+                .wrapBlock(type)
+        }
+    }
+
+    event.preventDefault()
 }
 
 export { HoverMenu };
