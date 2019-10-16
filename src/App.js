@@ -11,6 +11,8 @@ import rules from './htmlRules'
 import plugins from './marks'
 import Image from './images'
 import { css } from 'emotion'
+// import btoa from 'btoa'
+// import { request } from '@octokit/request'
 // import { thisExpression } from '@babel/types';
 // import SimplePage from './layouts/SimplePage'
 // import file from './test-files/sample-markdown.md'
@@ -20,6 +22,12 @@ const html = new Html({ rules })
 
 // set default node
 const DEFAULT_NODE = 'paragraph'
+
+// Github Credentials 
+// const PERSONAL_ACCESS_TOKEN = 'redacted' // kwajiehao personal access token
+// const USERNAME = 'kwajiehao' // user account which possesses the power to perform permissioned actions
+// const CREDENTIALS = `${USERNAME}:${PERSONAL_ACCESS_TOKEN}`
+
 
 // helper functions for links
 function wrapLink(editor, href) {
@@ -40,12 +48,27 @@ function insertImage(editor, src, target) {
   if (target) {
     editor.select(target)
   }
-
   editor.insertBlock({
     type: 'image',
     data: { src },
   })
+
+  editor.focus()
 }
+
+// helper functions for videos
+function insertVideo(editor, src, target) {
+  if (target) {
+    editor.select(target)
+  }
+
+  editor.insertBlock({
+    type: 'video-embed',
+    data: { src },
+  })
+
+}
+
 
 // editor's schema
 const schema = {
@@ -66,6 +89,9 @@ const schema = {
     image: {
       isVoid: true,
     },
+    'video-embed': {
+      isVoid: true
+    }
   },
 }
 
@@ -199,6 +225,13 @@ class App extends React.Component {
           .unwrapBlock('bulleted-list')
           .unwrapBlock('numbered-list')
       } 
+
+      if (type === 'video-embed') {
+        const src = 'https://www.youtube.com/embed/6dPI5A_BSjM'
+        if (!src) return
+        editor.command(insertVideo, src)
+      }
+
     } else {
       // Handle the extra wrapping required for list buttons.
       const parent = document.getParent(this.state.value.blocks.first().key)
@@ -223,6 +256,9 @@ class App extends React.Component {
         editor.setBlocks('list-item').wrapBlock(type)
       }
     }
+
+    // refocus on editor
+    // editor.focus()
   }
 
 
@@ -263,7 +299,7 @@ class App extends React.Component {
     return value.inlines.some(inline => inline.type === 'link')
   }
 
-  onClickLink = (editor, event) => {
+  onClickLink = async (editor, event) => {
     // prevent default behavior
     event.preventDefault()
 
@@ -275,7 +311,7 @@ class App extends React.Component {
       editor.command(unwrapLink)
     } else if (value.selection.isExpanded) {
       // otherwise, add a link
-      const href = window.prompt('Enter the URL of the link:')
+      const href = await window.prompt('Enter the URL of the link:')
 
       if (href == null) {
         return
@@ -320,25 +356,52 @@ class App extends React.Component {
   /*
   * Images
   */
-  
+    
+  toBase64 = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  })
+
   onFileUpload = async (editor, event) => {
     // prevent default behavior
     event.preventDefault()
 
     // load file to be uploaded
-    let file = event.target.files[0];
+    const file = event.target.files[0]
+    console.log(event)
     
     await this.setState({
       file: file,
       url: URL.createObjectURL(file)
     })
 
-    console.log(this.state.url)
+    // convert to base 64 to send to github
+    // const result = await this.toBase64(this.state.file)
 
     // filler value for src
     const src = this.state.url
 
     // upload to Github
+    // try {
+    //   await request('PUT /repos/:owner/:repo/contents/:path', {
+    //     owner: 'kwajiehao',
+    //     repo: 'telegram_kwabot',
+    //     path: 'hello.jpg',
+    //     message: 'Uploaded image',
+    //     content: result.replace(/data:.+\/.+;base64,/, ''),
+    //     committer: {
+    //       name: 'Kwa Jie Hao',
+    //       email: 'kwajiehao@gmail.com'
+    //     },
+    //     headers: {
+    //       authorization: `basic ${btoa(CREDENTIALS)}`
+    //     },
+    //   })
+    // } catch (err) {
+    //   console.log(err)
+    // }
 
     // get the url from Github as src
 
@@ -347,6 +410,8 @@ class App extends React.Component {
     editor.command(insertImage, src)
   }
 
+  // when the image button on our hover menu is clicked, it actually
+  // clicks on the hidden button to let user upload a file
   onClickImageButton = () => {
     // click on hidden button
     document.getElementById('image-upload-input').click()
@@ -374,6 +439,7 @@ class App extends React.Component {
   * Menu
   */
 
+
   HoverMenu = React.forwardRef(({ editor }, ref) => {
     const root = window.document.getElementById('root')
     return ReactDOM.createPortal(
@@ -398,7 +464,9 @@ class App extends React.Component {
         <this.MarkButton editor={editor} type="code" icon="code" />
         <this.MarkButton editor={editor} type="strikethrough" icon="X" />
         <this.BlockButton editor={editor} type="header3" icon="h3" />
-        <this.BlockButton editor={editor} type="numbered-list" icon="bullet" />
+        <this.BlockButton editor={editor} type="video-embed" icon="video" />
+        <this.BlockButton editor={editor} type="numbered-list" icon="numbered" />
+        <this.BlockButton editor={editor} type="bulleted-list" icon="bullet" />
         <this.LinksButton editor={editor} icon="link" />
         <this.ImageButton editor={editor} icon="image" />
       </Menu>,
@@ -455,6 +523,7 @@ class App extends React.Component {
     return (
       <div className="d-flex flex-row">
         <div className="pane">
+
           <Editor 
             value={this.state.value}
             onChange={this.onEditorChange}
@@ -464,6 +533,14 @@ class App extends React.Component {
             renderInline={this.renderInline}
             plugins={plugins}
             schema={schema}
+            // onFocus={(event, editor, next) => {
+
+            //   setTimeout(() => {
+            //     console.log('editor is focused')
+            //   });    
+          
+            //   return next();
+            // }}
           />
         </div>
         {/* need to define serializers for list and other items */}
@@ -495,12 +572,11 @@ class App extends React.Component {
 
   renderBlock = (props, editor, next) => {
     const { attributes, children, node } = props
-
     switch (node.type) {
       case 'header3':
         return <h3 {...attributes}>{children}</h3>
       case 'bulleted-list':
-        return <ul {...attributes}>{children}</ul>
+        return <ul {...attributes} style={{listStyleType: 'square'}}>{children}</ul>
       case 'numbered-list':
           return <ol {...attributes}>{children}</ol>
       case 'list-item':
@@ -508,6 +584,20 @@ class App extends React.Component {
       case 'image': {
         const src = node.data.get('src')
         return <Image {...props} editor={editor} src={src}>{children}</Image>
+      }
+      case 'video-embed': {
+        const src = node.data.get('src')
+        return <iframe 
+        {...attributes} 
+        title='video'
+        width='400' 
+        height='250' 
+        src={src}
+        frameborder='0' 
+        allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture' 
+        allowfullscreen>
+          {children}
+        </iframe>
       }
       default:
         return next()

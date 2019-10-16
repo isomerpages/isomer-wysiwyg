@@ -14,6 +14,7 @@ const BLOCK_TAGS = {
   tr: 'table-row',
   th: 'table-header',
   td: 'table-entry',
+  div: 'division',
 }
 
 // Add a dictionary of mark tags.

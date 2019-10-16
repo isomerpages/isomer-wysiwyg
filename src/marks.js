@@ -1,8 +1,7 @@
 // import React from 'react'
 import InsertBlockOnEnter from 'slate-insert-block-on-enter'
-import DropOrPasteImages from 'slate-drop-or-paste-images'
-
-
+// import DropOrPasteImages from 'slate-drop-or-paste-images'
+// import EditList from 'slate-edit-list'
 
 function MarkHotkey(options) {
   const { type, key } = options
@@ -40,16 +39,6 @@ function BlockHotkey(options) {
   }
 }
 
-// function SoftBreak(options = {}) {
-//   return {
-//     onKeyDown(event, editor, next) {
-//       if (event.key !== 'Enter') return next()
-//       if (options.shift && event.shiftKey === false) return next()
-//       return editor.insertText('\n')
-//     },
-//   }
-// }
-
 
 // Initialize a plugin for each mark...
 export const plugins = [
@@ -61,18 +50,19 @@ export const plugins = [
   BlockHotkey({ key: 'h', type: 'header3' }),
   BlockHotkey({ key: 'c', type: 'bulleted-list' }),
   BlockHotkey({ key: 'j', type: 'numbered-list' }),
+  BlockHotkey({ key: 'q', type: 'video-embed'}),
   // insertNewBreak(),
   // SoftBreak(),
   InsertBlockOnEnter('paragraph'),
-  DropOrPasteImages({
-    insertImage: (transform, file) => {
-      return transform.insertBlock({
-        type: 'image',
-        isVoid: true,
-        data: { file },
-      })
-    },
-  }),
+  // DropOrPasteImages({
+  //   insertImage: (transform, file) => {
+  //     return transform.insertBlock({
+  //       type: 'image',
+  //       isVoid: true,
+  //       data: { file },
+  //     })
+  //   },
+  // }),
 ]
 
 export default plugins
