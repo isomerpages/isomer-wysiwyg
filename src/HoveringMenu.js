@@ -1,28 +1,40 @@
-import React from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom'
-import { nullLiteral } from '@babel/types'
 
 
-const HoverMenu = React.forwardRef(({ editor, changeLinkAlter, showLinkAlter }, ref) => {
+const HoverMenu = React.forwardRef(({ editor }, ref) => {
     const root = document.getElementById('root')
 
+    let [showLinkInput, setShowLinkInput] = useState(false)
+
+
+    console.log('menu render')
     const onLinkAlterKeyDown = (event) => {
         if (event.key === "Enter") {
             let url = event.target.value
-                editor.wrapInline({
-                        type : 'link',
-                        data: {
-                            href : url
-                        }
-                    })
-            changeLinkAlter()
+            event.preventDefault()
+            editor
+                .wrapInline({
+                    type : 'link',
+                    data: {
+                        href : url
+                    }
+                })
+                .moveToEnd()
+                .focus()
+            setShowLinkInput(false)
         }
     }
 
     return ReactDOM.createPortal(
         <Menu ref={ref}>
-            { showLinkAlter ? 
-                <input type="text" id="linkInput" onKeyDown={onLinkAlterKeyDown} autoComplete="off"/> : 
+            { showLinkInput ? 
+                <input
+                    type="text" id="linkInput"
+                    onKeyDown={onLinkAlterKeyDown}
+                    onBlur={() => {setShowLinkInput(false)}}
+                    autoComplete="off"
+                /> : 
                 <React.Fragment>
                     <MarkButton editor={editor} type='bold'>bold</MarkButton>
                     <MarkButton editor={editor} type='italic'>italic</MarkButton>
@@ -31,21 +43,13 @@ const HoverMenu = React.forwardRef(({ editor, changeLinkAlter, showLinkAlter }, 
                     <HeadingButton editor={editor} type='heading-two'>H2</HeadingButton>
                     <HeadingButton editor={editor} type='block-quote'>quote</HeadingButton>
                     <HeadingButton editor={editor} type='bulleted-list'>list</HeadingButton>
-                    <InlineButton editor={editor} onClick={changeLinkAlter}>link</InlineButton>
+                    <InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)}>link</InlineButton>
                 </React.Fragment>
             }
         </Menu>
     , root)
 })
 
-const HoverLinkPopup = React.forwardRef(({ editor }, ref) => {
-    const root = document.getElementById('root')
-    return ReactDOM.createPortal(
-        <Menu ref={ref}>
-            <AlterLinkMenu />
-        </Menu>
-    , root)
-})
 
 const Menu = React.forwardRef((props, ref) => {
     return (
@@ -55,11 +59,6 @@ const Menu = React.forwardRef((props, ref) => {
     )
 })
 
-const AlterLinkMenu = (props) => {
-    let { editor } = props
-    return nullLiteral;
-}
-
 const InlineButton = (props) => {
     let { editor } = props
     const hasLink = editor.value.inlines.some(node => node.type === "link")
@@ -68,20 +67,13 @@ const InlineButton = (props) => {
         <button
             className={hasLink ? "button-active" : 'button-dead'}
             onMouseDown={(event) => {
-                props.onClick()
-                // if (hasLink) {
-                //     editor.unwrapInline({
-                //         type : 'link'
-                //     })
-                // } else {
-                //     const link = window.prompt("Enter URL Link: ")
-                //     editor.wrapInline({
-                //         type : 'link',
-                //         data: {
-                //             href : link
-                //         }
-                //     })
-                // }
+                if (hasLink) {
+                    editor.unwrapInline({
+                        type : 'link'
+                    })
+                } else {
+                    props.setShowLinkInput()
+                }
                 event.preventDefault()
             }}
         >

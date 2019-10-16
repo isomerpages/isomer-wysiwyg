@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Editor } from 'slate-react';
-import { Value } from 'slate';
+import { Value, Point, Range } from 'slate';
 import { HoverMenu } from './HoveringMenu'
 import { isEqual } from 'lodash'
 
@@ -25,7 +25,6 @@ export default class RichTextEditor extends Component {
     state = {
         value: initialValue,
         showLinkAlter: false,
-        menuPosition : []
     }
 
     constructor(props) {
@@ -34,12 +33,11 @@ export default class RichTextEditor extends Component {
         this.menuRef = React.createRef({})
     }
 
-    componentDidUpdate(prevProps, prevState) {
+    componentDidUpdate() {
         let textSelection = window.getSelection()
         const menu = this.menuRef.current
         let { value } = this.state
         let { fragment, selection } = value
-        let linkInput = document.getElementById('linkInput')
         
         /**
          * When editor is in focus, show menu atop 
@@ -47,6 +45,7 @@ export default class RichTextEditor extends Component {
          * when a chunk of text selected
          */
 
+         console.log(selection)
         if (textSelection.rangeCount > 0 && fragment.text) {
             let rect = textSelection.getRangeAt(0).getBoundingClientRect()
             let x = rect.left + window.pageXOffset - menu.offsetWidth / 2 + rect.width / 2
@@ -54,30 +53,17 @@ export default class RichTextEditor extends Component {
 
             menu.style.left = `${x}px`;
             menu.style.top = `${y}px`;
-
-            // /**
-            //  * Stores the state of the most recent position of the menu
-            //  * so that when an input box is created it can remain there
-            //  */
-            // if (!isEqual([x, y], prevState.menuPosition) || this.state.menuPosition.length === 0) {
-            //     this.setState({ menuPosition: [x, y] })
-            // }
         }
 
-        /**
-         * If editor is out of focus or
-         * selection is collapsed, hide the view
-         */
-        if ((selection.isBlurred || selection.isCollapsed) && !linkInput) {
-            menu.style.visibility = "hidden"
-        } else {
-            menu.style.visibility = "visible"
-        }
 
-        // if (this.state.showLinkAlter) {
-        //     linkInput.focus()
-        //     menu.style.left = `${this.state.menuPosition[0]}px`
-        //     menu.style.top = `${this.state.menuPosition[1]}px`
+        // /**
+        //  * If editor is out of focus or
+        //  * selection is collapsed, hide the view
+        //  */
+        // if (selection.isBlurred || selection.isCollapsed || (document.getElementById('linkInput') && !isLinkInputFocused)) {
+        //     menu.style.visibility = "hidden"
+        // } else {
+        //     menu.style.visibility = "visible"
         // }
     }
     
@@ -106,7 +92,7 @@ export default class RichTextEditor extends Component {
         return (
             <React.Fragment>
                 {children}
-                <HoverMenu ref={this.menuRef} editor={editor} showLinkAlter={this.state.showLinkAlter} changeLinkAlter={() => this.setState({ showLinkAlter: !this.state.showLinkAlter})}/>
+                <HoverMenu ref={this.menuRef} editor={editor}/>
             </React.Fragment>
         )
     }
