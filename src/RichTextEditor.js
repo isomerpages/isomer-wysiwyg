@@ -134,16 +134,27 @@ export default class RichTextEditor extends Component {
                 editor.splitBlock()
             }
         } else if (event.key === " ") {
-            let canTurnIntoList = editor.value.blocks.some(node => node.text === "1.")
+            let { document } = editor.value
+            let canTurnIntoOrderedList = editor.value.blocks.some(node => node.text === "1.") && editor.value.blocks.some(node => node.type !== "list-item")
+            let canTurnIntoBulletedList = editor.value.blocks.some(node => node.text === "-") && editor.value.blocks.some(node => node.type !== "list-item")
 
             editor.insertText(" ")
 
-            if (canTurnIntoList) {
+            if (canTurnIntoOrderedList) {
                 editor
                     .setBlocks('list-item')
                     .wrapBlock('ordered-list')
                 editor.deleteBackward(3)
             }
+            
+            if (canTurnIntoBulletedList) {
+                editor
+                    .setBlocks('list-item')
+                    .wrapBlock('bulleted-list')
+                editor.deleteBackward(2)
+            }
+
+
         } else if (event.key === "Tab") {
             let { document, previousBlock } = editor.value
 
