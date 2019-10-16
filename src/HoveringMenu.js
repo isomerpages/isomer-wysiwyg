@@ -8,7 +8,6 @@ const HoverMenu = React.forwardRef(({ editor }, ref) => {
     let [showLinkInput, setShowLinkInput] = useState(false)
 
 
-    console.log('menu render')
     const onLinkAlterKeyDown = (event) => {
         if (event.key === "Enter") {
             let url = event.target.value
@@ -42,7 +41,8 @@ const HoverMenu = React.forwardRef(({ editor }, ref) => {
                     <HeadingButton editor={editor} type='heading-one'>H1</HeadingButton>
                     <HeadingButton editor={editor} type='heading-two'>H2</HeadingButton>
                     <HeadingButton editor={editor} type='block-quote'>quote</HeadingButton>
-                    <HeadingButton editor={editor} type='bulleted-list'>list</HeadingButton>
+                    <HeadingButton editor={editor} type='ordered-list'>list</HeadingButton>
+                    <HeadingButton editor={editor} type='bulleted-list'>bullet</HeadingButton>
                     <InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)}>link</InlineButton>
                 </React.Fragment>
             }
@@ -93,7 +93,7 @@ const MarkButton = (props) => {
             className={className}
             onMouseDown={(event) => {
                 editor.toggleMark(type)
-                // event.preventDefault()
+                event.preventDefault()
             }}
         >
             {props.children}
@@ -109,7 +109,7 @@ const HeadingButton = (props) => {
 
     if (value.blocks.size > 0) {
         let parent = document.getParent(value.blocks.first().key)
-        if (parent && ['bulleted-list'].includes(parent.type)) {
+        if (parent && ['ordered-list', 'bulleted-list'].includes(parent.type)) {
             isActive = type === parent.type
         }
     }
@@ -131,11 +131,13 @@ const onHeadingClick = (event, editor, type) => {
     const isActive = editor.value.blocks.some(node => node.type === type)
     const isList = editor.value.blocks.some(node => node.type === "list-item")
 
-    if (type !== 'bulleted-list') {
+    if (type !== 'ordered-list' && type !== 'bulleted-list') {
         editor.setBlocks(isActive ? 'paragraph' : type)
 
         if (isList) {
-            editor.unwrapBlock('bulleted-list')
+            editor
+                .unwrapBlock('ordered-list')
+                .unwrapBlock('bulleted-list')
         }
 
     } else {
@@ -145,10 +147,11 @@ const onHeadingClick = (event, editor, type) => {
         if (isList && isType) {
             editor
                 .setBlocks('paragraph')
+                .unwrapBlock('ordered-list')
                 .unwrapBlock('bulleted-list')
         } else if (isList) {
             editor
-                .unwrapBlock('bulleted-list')
+                .unwrapBlock(type === "bulleted-list" ? "ordered-list" : "bulleted-list")
                 .wrapBlock(type)
         } else {
             editor

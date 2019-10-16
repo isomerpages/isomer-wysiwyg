@@ -45,7 +45,6 @@ export default class RichTextEditor extends Component {
          * when a chunk of text selected
          */
 
-         console.log(selection)
         if (textSelection.rangeCount > 0 && fragment.text) {
             let rect = textSelection.getRangeAt(0).getBoundingClientRect()
             let x = rect.left + window.pageXOffset - menu.offsetWidth / 2 + rect.width / 2
@@ -103,7 +102,7 @@ export default class RichTextEditor extends Component {
      */
     onKeyDown = (event, editor, next) => {
         let mark
-        
+
         if (event.metaKey && event.key === "b") {
             mark = "bold"
         } else if (event.metaKey && event.key === "i") {
@@ -116,33 +115,53 @@ export default class RichTextEditor extends Component {
 
             if (isList && currentBlocks.first().text.length === 0) {
                 editor
+                    .unwrapBlock('ordered-list')
                     .unwrapBlock('bulleted-list')
                     .setBlocks('paragraph')
             } else {
                 editor.deleteBackward(1)
             }
+        } else if (event.key === "Enter") {
+            let isEmptyBlock  = editor.value.blocks.some(node => node.text === "")
+            let isList = editor.value.blocks.some(node => node.type === "list-item")
+
+            if (isEmptyBlock && isList) {
+                editor
+                    .unwrapBlock('ordered-list')
+                    .unwrapBlock('bulleted-list')
+                    .setBlocks('paragraph')
+            } else {
+                editor.splitBlock()
+            }
+        } else if (event.key === " ") {
+            let canTurnIntoList = editor.value.blocks.some(node => node.text === "1.")
+
+            editor.insertText(" ")
+
+            if (canTurnIntoList) {
+                editor
+                    .setBlocks('list-item')
+                    .wrapBlock('ordered-list')
+                editor.deleteBackward(3)
+            }
+        } else if (event.key === "Tab") {
+            let { document, previousBlock } = editor.value
+
+            let parent = document.getParent(editor.value.blocks.first().key)
+            let hasListAsParent = parent.type === 'ordered-list'
+            let canBeIndented = previousBlock !== null && previousBlock.type === 'list-item' && hasListAsParent
+
+            if (canBeIndented) {
+                console.log(previousBlock.key)
+                editor
+                    .unwrapBlockByKey(previousBlock.key, 'list-item')
+                    // .setBlockByKey(previousBlock.key, 'pargraph')
+                // editor
+                    // .wrapBlock(previousBlock.key)
+            }
             
 
-        // } else if (event.key === "Enter") {
-        //     // if (ed)
-        //     let blockType = 'paragraph'
-        //     // /**
-        //     //  * Overrides default enter operation to
-        //     //  * not only splitBlock, but to also set
-        //     //  * it to the default type `paragraph`
-        //     //  */
-        //     // if (editor.value.blocks.some(node => node.type === 'block-quote')) {
-        //     //     blockType = 'block-quote'
-        //     // }
-
-        //     if (editor.value.blocks.some(node => node.type === 'list-item')) {
-        //         blockType = "list-item"
-        //     }
-
-        //     editor
-        //         .splitBlock()
-        //         .setBlocks(blockType)
-
+            editor.focus()
         } else {
             return next()
         }
@@ -185,8 +204,10 @@ export default class RichTextEditor extends Component {
                 return <p {...attributes} className="pb-2">{children}</p>
             case 'list-item':
                 return <li {...attributes}>{children}</li>
-            case 'bulleted-list':
+            case 'ordered-list':
                 return <ol {...attributes}>{children}</ol>
+            case 'bulleted-list':
+                return <ul style={{ listStyleType : 'square' }} {...attributes}>{children}</ul>
             default:
                 return next()
         }
