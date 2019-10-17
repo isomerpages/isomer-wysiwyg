@@ -39,6 +39,13 @@ function BlockHotkey(options) {
   }
 }
 
+// function onClickMark(options) {
+//   return { OnMouseDown(editor, event, type) {
+//       event.preventDefault()
+//       editor.toggleMark(type)
+//     }
+//   } 
+// }
 
 // Initialize a plugin for each mark...
 export const plugins = [
@@ -51,18 +58,7 @@ export const plugins = [
   BlockHotkey({ key: 'c', type: 'bulleted-list' }),
   BlockHotkey({ key: 'j', type: 'numbered-list' }),
   BlockHotkey({ key: 'q', type: 'video-embed'}),
-  // insertNewBreak(),
-  // SoftBreak(),
   InsertBlockOnEnter('paragraph'),
-  // DropOrPasteImages({
-  //   insertImage: (transform, file) => {
-  //     return transform.insertBlock({
-  //       type: 'image',
-  //       isVoid: true,
-  //       data: { file },
-  //     })
-  //   },
-  // }),
 ]
 
 export default plugins

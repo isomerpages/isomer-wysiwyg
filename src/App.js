@@ -10,6 +10,7 @@ import pretty from 'pretty'
 import rules from './htmlRules'
 import plugins from './marks'
 import Image from './images'
+import Video from './videos'
 import { css } from 'emotion'
 // import btoa from 'btoa'
 // import { request } from '@octokit/request'
@@ -48,6 +49,7 @@ function insertImage(editor, src, target) {
   if (target) {
     editor.select(target)
   }
+
   editor.insertBlock({
     type: 'image',
     data: { src },
@@ -63,11 +65,56 @@ function insertVideo(editor, src, target) {
   }
 
   editor.insertBlock({
-    type: 'video-embed',
+    type: 'video',
     data: { src },
   })
 
+
+  editor.focus()
 }
+
+// function splitVideo (editor, src, type) {
+//   const { value } = editor
+//   const { document, selection, startBlock} = value
+//   const { start, end } = selection
+//   console.log(startBlock)
+//   console.log(editor.query('isVoid', startBlock))
+
+//   if (startBlock && editor.query('isVoid', startBlock) && start.key === end.key) {
+//     const nextBlock = document.getNextBlock(start.key)
+//     const prevBlock = document.getPreviousBlock(start.key)
+//     const isFocusedStart = value.selection.focus.isAtStartOfNode(startBlock)
+//     const isFocusedEnd = value.selection.focus.isAtEndOfNode(startBlock)
+//     const blockToInsert = Block.create({
+//       type: type,
+//       data: { src },
+//     })
+
+//     console.log(blockToInsert)
+
+//     // Void block at the end of the document
+//     if (!nextBlock) {
+//       return editor
+//         .moveToEndOfNode(startBlock)
+//         .insertBlock(blockToInsert)
+//         .moveToEnd()
+//     }
+//     // Void block between two blocks
+//     if (nextBlock && prevBlock) {
+//       return editor
+//         .moveToEndOfNode(startBlock)
+//         .insertBlock(blockToInsert)
+//     }
+//     // Void block in the beginning of the document
+//     if (nextBlock && !prevBlock) {
+//       return editor
+//         .moveToStartOfNode(startBlock)
+//         .insertNodeByKey(document.key, 0, blockToInsert)
+//     }
+//   }
+
+//   editor.focus()
+// }
 
 
 // editor's schema
@@ -89,7 +136,7 @@ const schema = {
     image: {
       isVoid: true,
     },
-    'video-embed': {
+    video: {
       isVoid: true
     }
   },
@@ -107,6 +154,16 @@ const initialValue = Value.fromJSON({
           {
             object: 'text',
             text: `What's in a paragraph? Is it a word? or ...`,
+          },
+        ],
+      },
+      {
+        object: 'block',
+        type: 'paragraph',
+        nodes: [
+          {
+            object: 'text',
+            text: `What's next homie?`,
           },
         ],
       },
@@ -226,9 +283,10 @@ class App extends React.Component {
           .unwrapBlock('numbered-list')
       } 
 
-      if (type === 'video-embed') {
+      if (type === 'video') {
         const src = 'https://www.youtube.com/embed/6dPI5A_BSjM'
         if (!src) return
+        // editor.command(splitVideo, src, type)
         editor.command(insertVideo, src)
       }
 
@@ -370,7 +428,6 @@ class App extends React.Component {
 
     // load file to be uploaded
     const file = event.target.files[0]
-    console.log(event)
     
     await this.setState({
       file: file,
@@ -435,6 +492,8 @@ class App extends React.Component {
     )
   }
 
+
+
   /*
   * Menu
   */
@@ -464,7 +523,7 @@ class App extends React.Component {
         <this.MarkButton editor={editor} type="code" icon="code" />
         <this.MarkButton editor={editor} type="strikethrough" icon="X" />
         <this.BlockButton editor={editor} type="header3" icon="h3" />
-        <this.BlockButton editor={editor} type="video-embed" icon="video" />
+        <this.BlockButton editor={editor} type="video" icon="video" />
         <this.BlockButton editor={editor} type="numbered-list" icon="numbered" />
         <this.BlockButton editor={editor} type="bulleted-list" icon="bullet" />
         <this.LinksButton editor={editor} icon="link" />
@@ -585,20 +644,8 @@ class App extends React.Component {
         const src = node.data.get('src')
         return <Image {...props} editor={editor} src={src}>{children}</Image>
       }
-      case 'video-embed': {
-        const src = node.data.get('src')
-        return <iframe 
-        {...attributes} 
-        title='video'
-        width='400' 
-        height='250' 
-        src={src}
-        frameborder='0' 
-        allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture' 
-        allowfullscreen>
-          {children}
-        </iframe>
-      }
+      case 'video':
+        return <Video {...props} />
       default:
         return next()
     }
