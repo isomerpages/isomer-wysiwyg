@@ -1,25 +1,51 @@
 import React, { Component } from 'react';
 import { Editor } from 'slate-react';
-import { Value, Point, Range } from 'slate';
+import { Value, Block, Point, Range } from 'slate';
 import { HoverMenu } from './HoveringMenu'
 import { isEqual } from 'lodash'
 
 const initialValue = Value.fromJSON({
-    document: {
-      nodes: [
-        {
-          object: 'block',
-          type: 'paragraph',
-          nodes: [
-            {
-              object: 'text',
-              text: 'A line of text in a paragraph.',
-            },
-          ],
-        },
-      ],
-    },
-  })
+	document: {
+		nodes: [
+			{
+				object: 'block',
+				type: 'paragraph',
+				nodes: [
+					{
+						object: 'text',
+						text: 'A line of text in a paragraph.',
+					},
+				],
+			},
+		],
+	},
+})
+
+// Enforce our editor's schema
+const schema = {
+	document: {
+		last: { type: 'paragraph' },
+		normalize: (editor, { code, node, child }) => {
+			switch (code) {
+				// ensures our editor ends with an empty paragraph
+				case 'last_child_type_invalid': {
+					const paragraph = Block.create('paragraph')
+					return editor.insertNodeByKey(node.key, node.nodes.size, paragraph)
+				}
+				default:
+					return
+			}
+		},
+	},
+	blocks: {
+		image: {
+			isVoid: true,
+		},
+		video: {
+			isVoid: true
+		}
+	},
+}
 
 export default class RichTextEditor extends Component {
     state = {
@@ -76,7 +102,8 @@ export default class RichTextEditor extends Component {
                 renderMark={this.renderMark}
                 renderBlock={this.renderBlock}
                 renderEditor={this.renderEditor}
-                renderInline={this.renderInline}
+								renderInline={this.renderInline}
+								schema={schema}
                 autoFocus
             />
         )
