@@ -44,77 +44,23 @@ function unwrapLink(editor) {
   editor.unwrapInline('link')
 }
 
-// helper functions for images
-function insertImage(editor, src, target) {
+// helper functions for media
+function insertMedia(editor, src, type, target) {
   if (target) {
     editor.select(target)
   }
 
   editor.insertBlock({
-    type: 'image',
+    type,
     data: { src },
   })
 
+  // set block type to ensure video becomes void
+  editor.setBlocks(type)
+
+  // set focus back to editor
   editor.focus()
 }
-
-// helper functions for videos
-function insertVideo(editor, src, target) {
-  if (target) {
-    editor.select(target)
-  }
-
-  editor.insertBlock({
-    type: 'video',
-    data: { src },
-  })
-
-
-  editor.focus()
-}
-
-// function splitVideo (editor, src, type) {
-//   const { value } = editor
-//   const { document, selection, startBlock} = value
-//   const { start, end } = selection
-//   console.log(startBlock)
-//   console.log(editor.query('isVoid', startBlock))
-
-//   if (startBlock && editor.query('isVoid', startBlock) && start.key === end.key) {
-//     const nextBlock = document.getNextBlock(start.key)
-//     const prevBlock = document.getPreviousBlock(start.key)
-//     const isFocusedStart = value.selection.focus.isAtStartOfNode(startBlock)
-//     const isFocusedEnd = value.selection.focus.isAtEndOfNode(startBlock)
-//     const blockToInsert = Block.create({
-//       type: type,
-//       data: { src },
-//     })
-
-//     console.log(blockToInsert)
-
-//     // Void block at the end of the document
-//     if (!nextBlock) {
-//       return editor
-//         .moveToEndOfNode(startBlock)
-//         .insertBlock(blockToInsert)
-//         .moveToEnd()
-//     }
-//     // Void block between two blocks
-//     if (nextBlock && prevBlock) {
-//       return editor
-//         .moveToEndOfNode(startBlock)
-//         .insertBlock(blockToInsert)
-//     }
-//     // Void block in the beginning of the document
-//     if (nextBlock && !prevBlock) {
-//       return editor
-//         .moveToStartOfNode(startBlock)
-//         .insertNodeByKey(document.key, 0, blockToInsert)
-//     }
-//   }
-
-//   editor.focus()
-// }
 
 
 // editor's schema
@@ -268,13 +214,17 @@ class App extends React.Component {
     event.preventDefault()
     const { value } = editor
     const { document } = value
+    
+    
 
     // Handle everything but list buttons.
     if (type !== 'bulleted-list' && type !== 'numbered-list') {
       const isActive = this.hasBlock(type)
       const isList = this.hasBlock('list-item')
 
-      editor.setBlocks(isActive ? DEFAULT_NODE : type)
+      if (type !== 'video') {
+        editor.setBlocks(isActive ? DEFAULT_NODE : type)
+      }
 
       if (isList) {
         // if it's already a list, we want to unlist it
@@ -286,8 +236,7 @@ class App extends React.Component {
       if (type === 'video') {
         const src = 'https://www.youtube.com/embed/6dPI5A_BSjM'
         if (!src) return
-        // editor.command(splitVideo, src, type)
-        editor.command(insertVideo, src)
+        editor.command(insertMedia, src, type)
       }
 
     } else {
@@ -423,6 +372,7 @@ class App extends React.Component {
   })
 
   onFileUpload = async (editor, event) => {
+    console.log(event)
     // prevent default behavior
     event.preventDefault()
 
@@ -464,15 +414,19 @@ class App extends React.Component {
 
 
     if (!src) return
-    editor.command(insertImage, src)
+    editor.command(insertMedia, src, 'image')
+
+    // reset input value so that the same file can be uploaded twice!
+    document.getElementById('image-upload-input').value = null
   }
 
   // when the image button on our hover menu is clicked, it actually
   // clicks on the hidden button to let user upload a file
   onClickImageButton = () => {
     // click on hidden button
-    document.getElementById('image-upload-input').click()
+     document.getElementById('image-upload-input').click()
   }
+
 
   // image button
   ImageButton = ({ editor, icon}) => {

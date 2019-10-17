@@ -51,7 +51,7 @@ class Video extends React.Component {
     }
 
     const iframeStyle = {
-      display: 'block',
+      display: 'flex',
     }
 
     return (

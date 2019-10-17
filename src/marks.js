@@ -35,17 +35,11 @@ function BlockHotkey(options) {
       
       // Toggle the block `type`.
       editor.setBlocks(type)
+
+      // need to set some kind of toggleBlocks like we do in app.js
     },
   }
 }
-
-// function onClickMark(options) {
-//   return { OnMouseDown(editor, event, type) {
-//       event.preventDefault()
-//       editor.toggleMark(type)
-//     }
-//   } 
-// }
 
 // Initialize a plugin for each mark...
 export const plugins = [
@@ -55,9 +49,8 @@ export const plugins = [
   MarkHotkey({ key: '~', type: 'strikethrough' }),
   MarkHotkey({ key: 'u', type: 'underline' }),
   BlockHotkey({ key: 'h', type: 'header3' }),
-  BlockHotkey({ key: 'c', type: 'bulleted-list' }),
+  BlockHotkey({ key: 'c', type: 'bulleted-list' }), // doesn't work
   BlockHotkey({ key: 'j', type: 'numbered-list' }),
-  BlockHotkey({ key: 'q', type: 'video-embed'}),
   InsertBlockOnEnter('paragraph'),
 ]
 
