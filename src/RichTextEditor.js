@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Editor } from 'slate-react';
 import { Value, Block, Point, Range } from 'slate';
 import { HoverMenu } from './HoveringMenu'
+import Image from './images'
 import { isEqual } from 'lodash'
 
 const initialValue = Value.fromJSON({
@@ -246,7 +247,11 @@ export default class RichTextEditor extends Component {
                 return <ol {...attributes}>{children}</ol>
             case 'bulleted-list':
                 return <ul style={{ listStyleType : 'square' }} {...attributes}>{children}</ul>
-            default:
+						case 'image': {
+							const src = node.data.get('src')
+							return <Image {...props} editor={editor} src={src}>{children}</Image>
+						}		
+						default:
                 return next()
         }
     }

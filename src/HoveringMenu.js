@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import ReactDOM from 'react-dom'
 
-
 const HoverMenu = React.forwardRef(({ editor }, ref) => {
     const root = document.getElementById('root')
 
@@ -43,6 +42,7 @@ const HoverMenu = React.forwardRef(({ editor }, ref) => {
                     <HeadingButton editor={editor} type='block-quote'>quote</HeadingButton>
                     <HeadingButton editor={editor} type='ordered-list'>list</HeadingButton>
                     <HeadingButton editor={editor} type='bulleted-list'>bullet</HeadingButton>
+										<ImageButton editor={editor}>image</ImageButton>
                     <InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)}>link</InlineButton>
                 </React.Fragment>
             }
@@ -162,5 +162,101 @@ const onHeadingClick = (event, editor, type) => {
 
     event.preventDefault()
 }
+
+/*
+	Images
+*/
+const ImageButton = (props) => {
+	const { editor } = props
+	return (
+		<button 
+			className={'button-dead'}
+			onMouseDown={onClickImageButton}
+		>
+			<input 
+				id='image-upload-input' 
+				hidden 
+				type='file'
+				onChange={event => onImageUpload(editor, event)}
+			/>
+			{props.children}
+		</button>
+	)
+}
+
+const  onClickImageButton = () => {
+		// click on hidden button
+		document.getElementById('image-upload-input').click()
+}
+
+// helper function to insert images or videos
+const insertMedia = (editor, src, type, target) => {
+  if (target) {
+    editor.select(target)
+  }
+
+  editor.insertBlock({
+    type,
+    data: { src },
+  })
+
+  // set block type to ensure video becomes void
+  editor.setBlocks(type)
+
+  // set focus back to editor
+  editor.focus()
+}
+
+// const toBase64 = file => new Promise((resolve, reject) => {
+// 	const reader = new FileReader();
+// 	reader.readAsDataURL(file);
+// 	reader.onload = () => resolve(reader.result);
+// 	reader.onerror = error => reject(error);
+// })
+
+const onImageUpload = async (editor, event) => {	
+	// prevent default behavior
+	event.preventDefault()
+
+	// load file to be uploaded
+	const file = await event.target.files[0]
+
+	// get the local url to be referenced to generate a preview
+	// and set as src
+	const src = await URL.createObjectURL(file)
+
+	// need to convert to base 64 to send to github
+	// const result = await this.toBase64(this.state.file)
+
+	// upload to Github
+	// try {
+	//   await request('PUT /repos/:owner/:repo/contents/:path', {
+	//     owner: 'kwajiehao',
+	//     repo: 'telegram_kwabot',
+	//     path: 'hello.jpg',
+	//     message: 'Uploaded image',
+	//     content: result.replace(/data:.+\/.+;base64,/, ''),
+	//     committer: {
+	//       name: 'Kwa Jie Hao',
+	//       email: 'kwajiehao@gmail.com'
+	//     },
+	//     headers: {
+	//       authorization: `basic ${btoa(CREDENTIALS)}`
+	//     },
+	//   })
+	// } catch (err) {
+	//   console.log(err)
+	// }
+
+	// get the url from Github and save as src
+
+
+	if (!src) return
+	await editor.command(insertMedia, src, 'image')
+
+	// reset input value so that the same file can be uploaded twice!
+	document.getElementById('image-upload-input').value = null
+}
+
 
 export { HoverMenu };
