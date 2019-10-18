@@ -64,8 +64,8 @@ const HoverMenu = React.forwardRef(({ editor }, ref) => {
                     <HeadingButton editor={editor} type='block-quote'>quote</HeadingButton>
                     <HeadingButton editor={editor} type='ordered-list'>list</HeadingButton>
                     <HeadingButton editor={editor} type='bulleted-list'>bullet</HeadingButton>
-										<UploadButton editor={editor} type='image'>image</UploadButton>
 										<UploadButton editor={editor} type='file-upload'>file</UploadButton>
+										<UploadButton editor={editor} type='image'>image</UploadButton>
 										<InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)} setIsLink={() => setIsLink(false)}>video</InlineButton>
                     <InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)} setIsLink={() => setIsLink(true)}>link</InlineButton>
                 </React.Fragment>
@@ -199,14 +199,15 @@ const onHeadingClick = (event, editor, type) => {
 */
 const UploadButton = (props) => {
 	const { editor, type } = props
+	const buttonId = `upload-input-${type}`
 	return (
 		<button 
 			className={'button-dead'}
-			onMouseDown={onClickUploadButton}
+			onMouseDown={() => {onClickUploadButton(buttonId)}}
 		>
 			{props.children}
 			<input 
-				id='upload-input' 
+				id={buttonId}
 				hidden 
 				type='file'
 				onChange={event => onFileUpload(editor, event, type)}
@@ -216,9 +217,9 @@ const UploadButton = (props) => {
 }
 
 // function to click on the hidden image upload button
-const  onClickUploadButton = () => {
+const  onClickUploadButton = (buttonId) => {
 		// click on hidden button
-		document.getElementById('upload-input').click()
+		document.getElementById(buttonId).click()
 }
 
 // helper function to insert images or videos
@@ -247,8 +248,6 @@ const insertMedia = (editor, src, type, target) => {
 // })
 
 const onFileUpload = async (editor, event, type) => {	
-	console.log(type)
-
 	// prevent default behavior
 	event.preventDefault()
 
@@ -261,6 +260,7 @@ const onFileUpload = async (editor, event, type) => {
 
 		
 	if (type === 'image') {
+		console.log('we reached here')
 		// need to convert to base 64 to send to github
 		// const result = await this.toBase64(this.state.file)
 
@@ -305,7 +305,7 @@ const onFileUpload = async (editor, event, type) => {
 	}
 
 	// reset input value so that the same file can be uploaded twice!
-	document.getElementById('upload-input').value = null
+	document.getElementById(`upload-input-${type}`).value = null
 }
 
 /*
