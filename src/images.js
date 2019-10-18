@@ -8,6 +8,13 @@ import { css } from 'emotion'
  */
 
 class Image extends React.Component {
+
+    /**
+   * Render.
+   *
+   * @return {Element}
+   */
+
   render() {
     const { attributes, isFocused } = this.props
     const { src } = this.props

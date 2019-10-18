@@ -4,12 +4,20 @@ import ReactDOM from 'react-dom'
 const HoverMenu = React.forwardRef(({ editor }, ref) => {
     const root = document.getElementById('root')
 
-    let [showLinkInput, setShowLinkInput] = useState(false)
+		// react hook to hide and display textbox to enter links
+		let [showLinkInput, setShowLinkInput] = useState(false)
+
+		// react hook to decide whether textbox link is used for videos or for links
+		let [isLink, setIsLink] = useState(false)
 
 
-    const onLinkAlterKeyDown = (event) => {
+    const onLinkAlterKeyDown = async (event) => {
         if (event.key === "Enter") {
-            let url = event.target.value
+					// get url entered in text box
+					let url = event.target.value
+
+					// if it is a link
+					if (isLink) {
             event.preventDefault()
             editor
                 .wrapInline({
@@ -20,8 +28,22 @@ const HoverMenu = React.forwardRef(({ editor }, ref) => {
                 })
                 .moveToEnd()
                 .focus()
-            setShowLinkInput(false)
-        }
+					}
+					else {
+						if (!url) return // how to make this async?
+
+						// parse the youtube embed url to ensure it can be displayed
+							// for example, no `watch?`
+
+						// insert video url
+						await editor.command(insertMedia, url, 'video')
+					}
+
+					// stop displaying the link input
+					setShowLinkInput(false)
+
+					// there is no need to setIsLink because it is set at the menu level
+				}
     }
 
     return ReactDOM.createPortal(
@@ -42,8 +64,10 @@ const HoverMenu = React.forwardRef(({ editor }, ref) => {
                     <HeadingButton editor={editor} type='block-quote'>quote</HeadingButton>
                     <HeadingButton editor={editor} type='ordered-list'>list</HeadingButton>
                     <HeadingButton editor={editor} type='bulleted-list'>bullet</HeadingButton>
-										<ImageButton editor={editor}>image</ImageButton>
-                    <InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)}>link</InlineButton>
+										<UploadButton editor={editor} type='image'>image</UploadButton>
+										<UploadButton editor={editor} type='file-upload'>file</UploadButton>
+										<InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)} setIsLink={() => setIsLink(false)}>video</InlineButton>
+                    <InlineButton editor={editor} setShowLinkInput={() => setShowLinkInput(true)} setIsLink={() => setIsLink(true)}>link</InlineButton>
                 </React.Fragment>
             }
         </Menu>
@@ -72,7 +96,8 @@ const InlineButton = (props) => {
                         type : 'link'
                     })
                 } else {
-                    props.setShowLinkInput()
+										props.setIsLink()
+										props.setShowLinkInput()
                 }
                 event.preventDefault()
             }}
@@ -131,28 +156,34 @@ const onHeadingClick = (event, editor, type) => {
     const isActive = editor.value.blocks.some(node => node.type === type)
     const isList = editor.value.blocks.some(node => node.type === "list-item")
 
+		// for non-list blocks
     if (type !== 'ordered-list' && type !== 'bulleted-list') {
         editor.setBlocks(isActive ? 'paragraph' : type)
 
+				// if already a list, unlist the block
         if (isList) {
             editor
                 .unwrapBlock('ordered-list')
                 .unwrapBlock('bulleted-list')
         }
 
+		// for list blocks
     } else {
         let parent = document.getParent(editor.value.blocks.first().key)
         const isType = parent.type === type
-    
+
+				// if it's a list and the parent is the same type of list
         if (isList && isType) {
             editor
                 .setBlocks('paragraph')
                 .unwrapBlock('ordered-list')
-                .unwrapBlock('bulleted-list')
+								.unwrapBlock('bulleted-list')
+				// list but parent is a different type of list
         } else if (isList) {
             editor
                 .unwrapBlock(type === "bulleted-list" ? "ordered-list" : "bulleted-list")
-                .wrapBlock(type)
+								.wrapBlock(type)
+				// list-ify it
         } else {
             editor
                 .setBlocks('list-item')
@@ -166,27 +197,28 @@ const onHeadingClick = (event, editor, type) => {
 /*
 	Images
 */
-const ImageButton = (props) => {
-	const { editor } = props
+const UploadButton = (props) => {
+	const { editor, type } = props
 	return (
 		<button 
 			className={'button-dead'}
-			onMouseDown={onClickImageButton}
+			onMouseDown={onClickUploadButton}
 		>
+			{props.children}
 			<input 
-				id='image-upload-input' 
+				id='upload-input' 
 				hidden 
 				type='file'
-				onChange={event => onImageUpload(editor, event)}
+				onChange={event => onFileUpload(editor, event, type)}
 			/>
-			{props.children}
 		</button>
 	)
 }
 
-const  onClickImageButton = () => {
+// function to click on the hidden image upload button
+const  onClickUploadButton = () => {
 		// click on hidden button
-		document.getElementById('image-upload-input').click()
+		document.getElementById('upload-input').click()
 }
 
 // helper function to insert images or videos
@@ -214,7 +246,9 @@ const insertMedia = (editor, src, type, target) => {
 // 	reader.onerror = error => reject(error);
 // })
 
-const onImageUpload = async (editor, event) => {	
+const onFileUpload = async (editor, event, type) => {	
+	console.log(type)
+
 	// prevent default behavior
 	event.preventDefault()
 
@@ -223,40 +257,59 @@ const onImageUpload = async (editor, event) => {
 
 	// get the local url to be referenced to generate a preview
 	// and set as src
-	const src = await URL.createObjectURL(file)
+	const src = URL.createObjectURL(file)
 
-	// need to convert to base 64 to send to github
-	// const result = await this.toBase64(this.state.file)
+		
+	if (type === 'image') {
+		// need to convert to base 64 to send to github
+		// const result = await this.toBase64(this.state.file)
 
-	// upload to Github
-	// try {
-	//   await request('PUT /repos/:owner/:repo/contents/:path', {
-	//     owner: 'kwajiehao',
-	//     repo: 'telegram_kwabot',
-	//     path: 'hello.jpg',
-	//     message: 'Uploaded image',
-	//     content: result.replace(/data:.+\/.+;base64,/, ''),
-	//     committer: {
-	//       name: 'Kwa Jie Hao',
-	//       email: 'kwajiehao@gmail.com'
-	//     },
-	//     headers: {
-	//       authorization: `basic ${btoa(CREDENTIALS)}`
-	//     },
-	//   })
-	// } catch (err) {
-	//   console.log(err)
-	// }
+		// upload to Github
+		// try {
+		//   await request('PUT /repos/:owner/:repo/contents/:path', {
+		//     owner: 'kwajiehao',
+		//     repo: 'telegram_kwabot',
+		//     path: 'hello.jpg',
+		//     message: 'Uploaded image',
+		//     content: result.replace(/data:.+\/.+;base64,/, ''),
+		//     committer: {
+		//       name: 'Kwa Jie Hao',
+		//       email: 'kwajiehao@gmail.com'
+		//     },
+		//     headers: {
+		//       authorization: `basic ${btoa(CREDENTIALS)}`
+		//     },
+		//   })
+		// } catch (err) {
+		//   console.log(err)
+		// }
 
-	// get the url from Github and save as src
+		// get the url from Github and save as src
 
+		if (!src) return // how to make this async?
+		await editor.command(insertMedia, src, type)
 
-	if (!src) return
-	await editor.command(insertMedia, src, 'image')
+	}
+
+	if (type === 'file-upload') {
+		// create a link to the file
+		editor
+		.wrapInline({
+				type : 'link',
+				data: {
+						href : src
+				}
+		})
+		.moveToEnd()
+		.focus()
+	}
 
 	// reset input value so that the same file can be uploaded twice!
-	document.getElementById('image-upload-input').value = null
+	document.getElementById('upload-input').value = null
 }
 
+/*
+	File Upload
+*/
 
 export { HoverMenu };

@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
 import { Editor } from 'slate-react';
-import { Value, Block, Point, Range } from 'slate';
+import { Value, Block } from 'slate';
 import { HoverMenu } from './HoveringMenu'
 import Image from './images'
-import { isEqual } from 'lodash'
+import Video from './videos'
+// import { isEqual } from 'lodash'
 
 const initialValue = Value.fromJSON({
 	document: {
@@ -18,6 +19,16 @@ const initialValue = Value.fromJSON({
 					},
 				],
 			},
+			{
+				object: 'block',
+				type: 'paragraph',
+				nodes: [
+					{
+						object: 'text',
+						text: `What's up homie?`,
+					},
+				],
+			}
 		],
 	},
 })
@@ -75,7 +86,7 @@ export default class RichTextEditor extends Component {
         if (textSelection.rangeCount > 0 && fragment.text) {
             let rect = textSelection.getRangeAt(0).getBoundingClientRect()
             let x = rect.left + window.pageXOffset - menu.offsetWidth / 2 + rect.width / 2
-            let y = rect.top + window.pageYOffset - menu.offsetHeight
+						let y = rect.top + window.pageYOffset - menu.offsetHeight
 
             menu.style.left = `${x}px`;
             menu.style.top = `${y}px`;
@@ -162,7 +173,9 @@ export default class RichTextEditor extends Component {
                 editor.splitBlock()
             }
         } else if (event.key === " ") {
-            let { document } = editor.value
+
+						
+						// if not yet a list item, if user enters '1.' or '-' and a space, it will become a bullet
             let canTurnIntoOrderedList = editor.value.blocks.some(node => node.text === "1.") && editor.value.blocks.some(node => node.type !== "list-item")
             let canTurnIntoBulletedList = editor.value.blocks.some(node => node.text === "-") && editor.value.blocks.some(node => node.type !== "list-item")
 
@@ -250,7 +263,9 @@ export default class RichTextEditor extends Component {
 						case 'image': {
 							const src = node.data.get('src')
 							return <Image {...props} editor={editor} src={src}>{children}</Image>
-						}		
+						}
+						case 'video':
+							return <Video {...props} />		
 						default:
                 return next()
         }
@@ -263,6 +278,7 @@ export default class RichTextEditor extends Component {
         const { attributes, children, node } = props
 
         switch (node.type) {
+						case 'file':
             case 'link': {
                 const { data } = node
                 const href = data.get('href')
