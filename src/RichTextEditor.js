@@ -1,10 +1,18 @@
 import React, { Component } from 'react';
 import { Editor } from 'slate-react';
 import { Value, Block } from 'slate';
+import Html from 'slate-html-serializer'
+import showdown from 'showdown'
 import { HoverMenu } from './HoveringMenu'
 import Image from './images'
 import Video from './videos'
-// import { isEqual } from 'lodash'
+import rules from './serializeRules'
+
+// instantiate a new serializer instance with the imported rules
+const html = new Html({ rules })
+
+// instantiate a new showdown converter
+const converter = new showdown.Converter()
 
 const initialValue = Value.fromJSON({
 	document: {
@@ -69,6 +77,9 @@ export default class RichTextEditor extends Component {
         super(props)
         this.editorRef = React.createRef({})
         this.menuRef = React.createRef({})
+    }
+    
+    componentDidMount() {
     }
 
     componentDidUpdate() {
