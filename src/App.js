@@ -1,11 +1,9 @@
-import React from 'react';
-import './App.css';
-import file from './test-files/sample-markdown.md';
-import SimplePage from './layouts/SimplePage';
+import React from 'react'
+import './App.css'
 import './editor.scss'
+import file from './test-files/sample-markdown.md'
+import SimplePage from './layouts/SimplePage'
 import RichTextEditor from './RichTextEditor'
-
-
 
 class App extends React.Component {
   state = {
