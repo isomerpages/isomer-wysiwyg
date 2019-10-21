@@ -1,15 +1,12 @@
 import React, { Component } from 'react';
 import { Editor } from 'slate-react';
 import { Value, Block } from 'slate';
-import Html from 'slate-html-serializer'
 import showdown from 'showdown'
 import { HoverMenu } from './HoveringMenu'
 import Image from './images'
 import Video from './videos'
-import rules from './serializeRules'
+import { slateToHtml, htmlToSlate } from './serializer'
 
-// instantiate a new serializer instance with the imported rules
-const html = new Html({ rules })
 
 // instantiate a new showdown converter
 const converter = new showdown.Converter()
@@ -86,7 +83,7 @@ export default class RichTextEditor extends Component {
         let textSelection = window.getSelection()
         const menu = this.menuRef.current
         let { value } = this.state
-        let { fragment, selection } = value
+        let { fragment } = value
         
         /**
          * When editor is in focus, show menu atop 
@@ -186,7 +183,7 @@ export default class RichTextEditor extends Component {
         } else if (event.key === " ") {
 
 						
-						// if not yet a list item, if user enters '1.' or '-' and a space, it will become a bullet
+            // if not yet a list item, if user enters '1.' or '-' and a space, it will become a bullet
             let canTurnIntoOrderedList = editor.value.blocks.some(node => node.text === "1.") && editor.value.blocks.some(node => node.type !== "list-item")
             let canTurnIntoBulletedList = editor.value.blocks.some(node => node.text === "-") && editor.value.blocks.some(node => node.type !== "list-item")
 
