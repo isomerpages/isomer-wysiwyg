@@ -15,6 +15,8 @@ const BLOCK_TAGS = {
   th: 'table-header',
   td: 'table-entry',
   div: 'division',
+  hr: 'hr',
+  br: 'br',
 }
 
 // Add a dictionary of mark tags.
@@ -27,6 +29,7 @@ const MARK_TAGS = {
 export const rules = [
   {
     deserialize(el, next) {
+      console.log(el)
       const tag = el.tagName.toLowerCase()
       const type = BLOCK_TAGS[tag]
     
@@ -49,7 +52,7 @@ export const rules = [
       if (obj.object === 'block') {
         switch (obj.type) {
           case 'paragraph':
-            // we can inclde class or id data inside the slate data object
+            // we can include class or id data inside the slate data object
             return <p className={obj.data.get('className')} id={obj.data.get('idName')}>{children}</p>
           case 'link': // problem serializing links
             return <a href={obj.data.get('href')}>{children}</a>
@@ -72,6 +75,10 @@ export const rules = [
             return <tr>{children}</tr>
           case 'table-entry':
             return <td>{children}</td>
+          case 'hr':
+            return <hr/>
+          case 'br':
+            return <br/>
           default:
             return
         }
@@ -111,6 +118,38 @@ export const rules = [
       }
     },
   },
+  // Add a new rule for text 
+  {
+    deserialize(el) {
+      if (el.tagName && el.tagName.toLowerCase() === 'br') {
+        return {
+          object: 'text',
+          text: '',
+          marks: [],
+        }
+      }
+  
+      if (el.nodeName === '#text') {
+        if (el.nodeValue && el.nodeValue.match(/<!--.*?-->/)) return
+  
+        return {
+          object: 'text',
+          text: el.nodeValue,
+          marks: [],
+        }
+      }
+    },
+  
+    serialize(obj, children) {
+      if (obj.object === 'string') {
+        return children.split('\n').reduce((array, text, i) => {
+          if (i !== 0) array.push(<br key={i} />)
+          array.push(text)
+          return array
+        }, [])
+      }
+    },
+  }
 ]
 
 export default rules
